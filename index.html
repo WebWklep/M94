@@ -1,56 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#090b12" />
-  <title>M94 — Dream Drive</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <main id="app">
-    <section class="viewport" aria-label="3D preview">
-      <div class="topbar">
-        <a class="brand" href="./">M94<span> / DREAM DRIVE</span></a>
-        <div class="status"><i></i> SCAN LAB · PROTOTYPE 01</div>
-      </div>
-      <div id="stage"></div>
-      <div class="hint" id="hint">DRAG TO ORBIT <b>·</b> SCROLL TO ZOOM <b>·</b> RIGHT-DRAG TO PAN</div>
-      <div class="loading" id="loading">PREPARING THE DREAM...</div>
-    </section>
-
-    <aside class="panel">
-      <div class="eyebrow">A WORLD IN THE MAKING</div>
-      <h1>Dream<br><em>Drive.</em></h1>
-      <p class="intro">A little test space for the strange places our E30 will travel through.</p>
-
-      <label class="upload" for="scan-file">
-        <span class="upload-icon">＋</span>
-        <strong>LOAD A 3D SCAN</strong>
-        <small>Choose a .GLB file from Sketchfab</small>
-      </label>
-      <input id="scan-file" type="file" accept=".glb,model/gltf-binary" />
-
-      <div class="controls">
-        <div class="section-title">VIEWPORT</div>
-        <button id="reset-view" class="control-button">↺ <span>Reset camera</span></button>
-        <button id="toggle-grid" class="control-button active">▦ <span>Ground grid</span><b>ON</b></button>
-        <button id="toggle-ground" class="control-button active">◯ <span>Ground plane</span><b>ON</b></button>
-      </div>
-
-      <div class="file-info" id="file-info">
-        <div class="section-title">CURRENT SCENE</div>
-        <strong id="model-name">Dream test environment</strong>
-        <small id="model-detail">No scan loaded · waiting for your first asset</small>
-      </div>
-
-      <div class="note">
-        <span>01</span>
-        <p>First we test scanned objects in the browser. Later they become pieces of a surreal road trip.</p>
-      </div>
-      <footer>M94 © 2026 <span>BUILT FOR THE ROAD LESS REAL</span></footer>
-    </aside>
-  </main>
-  <script type="module" src="./main.js"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>M94 — DREAM DRIVE</title><link rel="stylesheet" href="./style.css"></head><body>
+<section id="gate" class="gate"><div class="gate-mark">M<span>94</span></div><div class="gate-kicker">A SMALL WORLD BETWEEN REALITIES</div><h1>Choose your<br><em>way in.</em></h1><p>Enter access code to continue.</p><form id="code-form"><input id="access-code" type="password" inputmode="numeric" placeholder="••••••••" aria-label="Access code"><button>ENTER ↗</button></form><div id="gate-error"></div><small class="gate-foot">M94 · DREAM DRIVE · 2026</small></section>
+<main id="workspace" class="workspace hidden"><section class="viewport"><div id="stage"></div><header class="topbar"><a class="brand">M94 <span id="mode-label">/ DEVELOPER MODE</span></a><div class="top-actions"><i></i><span id="mode-status">SCENE EDITOR</span><button id="exit-mode">EXIT ↗</button></div></header><div class="viewport-hint" id="viewport-hint">SELECT OBJECT · DRAG TO ORBIT · SCROLL TO ZOOM</div><div id="toast" class="toast"></div></section>
+<aside id="editor-panel" class="panel"><div class="eyebrow">WORLD BUILDER / 01</div><h2>Scene<br><em>editor.</em></h2><p>Build the places that exist somewhere between a memory and a dream.</p><div class="tool-section"><div class="section-title">ADD TO SCENE</div><label class="upload-button" for="model-files"><b>＋</b><span><strong>Import 3D model</strong><small>GLB files · multiple objects supported</small></span></label><input id="model-files" type="file" accept=".glb,model/gltf-binary" multiple><div class="primitive-row"><button data-primitive="box">＋ BOX</button><button data-primitive="sphere">＋ SPHERE</button><button data-primitive="cylinder">＋ CYLINDER</button></div></div>
+<div class="tool-section"><div class="section-title">TRANSFORM SELECTED</div><div class="transform-row"><button data-transform="translate" class="selected">MOVE</button><button data-transform="rotate">ROTATE</button><button data-transform="scale">SCALE</button></div><button id="delete-object" class="danger-button">− REMOVE SELECTED OBJECT</button></div>
+<div class="tool-section"><div class="section-title">OBJECTS IN SCENE <span id="object-count">0</span></div><div id="object-list" class="object-list"><div class="empty-list">Nothing here yet. Add your first object.</div></div></div>
+<div class="tool-section"><div class="section-title">ENVIRONMENT</div><div class="toggle-line">Ground plane <input type="checkbox" id="ground-toggle" checked></div><div class="toggle-line">Grid <input type="checkbox" id="grid-toggle" checked></div></div>
+<div class="panel-bottom"><button id="save-scene" class="primary-button">EXPORT SCENE JSON ↗</button><small>Exports object transforms and primitive geometry. Imported model files remain separate assets.</small></div></aside>
+<aside id="game-panel" class="panel hidden"><div class="eyebrow">M94 / DREAM DRIVE</div><h2>Somewhere<br><em>else.</em></h2><p>A road, a car, and a world that doesn't need to make sense.</p><div class="game-card"><span>THE JOURNEY BEGINS</span><strong>BMW E30</strong><small>Vehicle and world are still in development.</small></div><button id="back-to-gate" class="secondary-button">BACK TO ENTRY</button></aside></main><script type="module" src="./main.js"></script></body></html>
