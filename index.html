@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090b12" />
+  <title>M94 — Dream Drive</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main id="app">
+    <section class="viewport" aria-label="3D preview">
+      <div class="topbar">
+        <a class="brand" href="./">M94<span> / DREAM DRIVE</span></a>
+        <div class="status"><i></i> SCAN LAB · PROTOTYPE 01</div>
+      </div>
+      <div id="stage"></div>
+      <div class="hint" id="hint">DRAG TO ORBIT <b>·</b> SCROLL TO ZOOM <b>·</b> RIGHT-DRAG TO PAN</div>
+      <div class="loading" id="loading">PREPARING THE DREAM...</div>
+    </section>
+
+    <aside class="panel">
+      <div class="eyebrow">A WORLD IN THE MAKING</div>
+      <h1>Dream<br><em>Drive.</em></h1>
+      <p class="intro">A little test space for the strange places our E30 will travel through.</p>
+
+      <label class="upload" for="scan-file">
+        <span class="upload-icon">＋</span>
+        <strong>LOAD A 3D SCAN</strong>
+        <small>Choose a .GLB file from Sketchfab</small>
+      </label>
+      <input id="scan-file" type="file" accept=".glb,model/gltf-binary" />
+
+      <div class="controls">
+        <div class="section-title">VIEWPORT</div>
+        <button id="reset-view" class="control-button">↺ <span>Reset camera</span></button>
+        <button id="toggle-grid" class="control-button active">▦ <span>Ground grid</span><b>ON</b></button>
+        <button id="toggle-ground" class="control-button active">◯ <span>Ground plane</span><b>ON</b></button>
+      </div>
+
+      <div class="file-info" id="file-info">
+        <div class="section-title">CURRENT SCENE</div>
+        <strong id="model-name">Dream test environment</strong>
+        <small id="model-detail">No scan loaded · waiting for your first asset</small>
+      </div>
+
+      <div class="note">
+        <span>01</span>
+        <p>First we test scanned objects in the browser. Later they become pieces of a surreal road trip.</p>
+      </div>
+      <footer>M94 © 2026 <span>BUILT FOR THE ROAD LESS REAL</span></footer>
+    </aside>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
