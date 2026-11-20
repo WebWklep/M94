@@ -1,16 +1,79 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>M94</title><link rel="stylesheet" href="./style.css">
-<script type="importmap">{"imports":{"three":"https://esm.sh/three@0.160.0","three/addons/":"https://esm.sh/three@0.160.0/examples/jsm/"}}</script></head>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>M94 — Scene Editor</title>
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
 <body>
-<section id="gate"><form id="login"><input id="password" type="password" inputmode="numeric" autocomplete="off" placeholder="Пароль" aria-label="Пароль"><div id="login-error"></div></form></section>
+<section id="gate">
+  <form id="login" autocomplete="off">
+    <input id="password" type="password" inputmode="numeric" autocomplete="off" placeholder="Пароль" aria-label="Пароль">
+    <div id="login-error" role="status"></div>
+  </form>
+</section>
 <main id="editor" class="hidden">
-<header class="toolbar"><div class="brand">M94 <span>EDITOR</span></div><div class="tools"><button id="import-button">Импорт</button><button id="add-box">＋ Куб</button><button id="add-sphere">＋ Сфера</button><button id="add-cylinder">＋ Цилиндр</button><input id="file-input" type="file" accept=".glb,.gltf,.obj" multiple hidden></div><button id="logout" class="quiet">Выйти</button></header>
-<section id="viewport"><div id="stage"></div><div id="viewport-label">VIEWPORT</div></section>
-<aside class="sidebar">
-<section><h3>Объекты</h3><div id="objects"><p class="empty">Сцена пока пустая</p></div></section>
-<section><h3>Преобразование</h3><div class="mode-buttons"><button data-mode="translate" class="active">Переместить</button><button data-mode="rotate">Вращать</button><button data-mode="scale">Размер</button></div>
-<div class="axis-row"><label>X <input id="pos-x" type="number" step=".1" value="0"></label><label>Y <input id="pos-y" type="number" step=".1" value="0"></label><label>Z <input id="pos-z" type="number" step=".1" value="0"></label></div>
-<button id="delete" class="delete">Удалить объект</button></section>
-<section><h3>Сцена</h3><label class="check"><input id="grid-toggle" type="checkbox" checked> Сетка</label><label class="check"><input id="ground-toggle" type="checkbox" checked> Пол</label></section>
-</aside></main>
-<script type="module" src="./main.js"></script></body></html>
+  <header class="toolbar">
+    <div class="brand">M94 <span>SCENE EDITOR</span></div>
+    <div class="tools">
+      <button id="import-button">Импорт 3D</button>
+      <span class="divider"></span>
+      <button id="add-box">＋ Куб</button>
+      <button id="add-sphere">＋ Сфера</button>
+      <button id="add-cylinder">＋ Цилиндр</button>
+    </div>
+    <div class="file-tools">
+      <button id="save-scene" class="primary">Сохранить</button>
+      <button id="load-scene">Открыть</button>
+      <button id="logout" class="quiet">Выйти</button>
+    </div>
+    <input id="file-input" type="file" accept=".glb,.gltf" multiple hidden>
+    <input id="scene-input" type="file" accept=".json,application/json" hidden>
+  </header>
+  <section id="viewport">
+    <div id="stage"></div>
+    <div class="viewport-tag">PERSPECTIVE <i></i> M94</div>
+    <div class="viewport-hint">ЛКМ — выбрать · Перетаскивание — вращать · Колесо — масштаб</div>
+    <button id="frame-scene" class="view-button" title="Показать всю сцену">Вписать сцену</button>
+  </section>
+  <aside class="sidebar">
+    <section class="panel objects-panel">
+      <div class="panel-heading"><h2>Сцена</h2><span id="object-count">0 OBJECTS</span></div>
+      <div id="objects"><p class="empty">Здесь появятся объекты</p></div>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><h2>Преобразование</h2></div>
+      <div class="mode-buttons">
+        <button data-mode="translate" class="active" title="Переместить">MOVE</button>
+        <button data-mode="rotate" title="Вращать">ROTATE</button>
+        <button data-mode="scale" title="Масштаб">SCALE</button>
+      </div>
+      <div class="axis-row">
+        <label><span>X</span><input id="pos-x" type="number" step=".1" value="0"></label>
+        <label><span>Y</span><input id="pos-y" type="number" step=".1" value="0"></label>
+        <label><span>Z</span><input id="pos-z" type="number" step=".1" value="0"></label>
+      </div>
+      <button id="delete" class="delete" disabled>Удалить выбранный объект</button>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><h2>Вид</h2></div>
+      <label class="check"><input id="grid-toggle" type="checkbox" checked> Сетка</label>
+      <label class="check"><input id="ground-toggle" type="checkbox" checked> Поверхность</label>
+    </section>
+    <div class="sidebar-foot">M94 · DREAM DRIVE <span>EARLY BUILD</span></div>
+  </aside>
+</main>
+<script>
+(() => {
+  const gate=document.getElementById('gate'), editor=document.getElementById('editor');
+  const password=document.getElementById('password'), error=document.getElementById('login-error');
+  function unlock(){gate.classList.add('hidden');editor.classList.remove('hidden');window.dispatchEvent(new Event('m94:unlock'))}
+  document.getElementById('login').addEventListener('submit',e=>{e.preventDefault();if(password.value==='21101991')unlock();else{error.textContent='Неверный пароль';password.select()}});
+  password.addEventListener('input',()=>{if(password.value==='21101991')unlock()});
+})();
+</script>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
