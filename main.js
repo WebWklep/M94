@@ -280,7 +280,8 @@ async function loadPublishedScene() {
   } catch (err) { console.warn('Using an empty starter scene:', err); }
 }
 
-function enter(nextMode) {
+async function enter(nextMode) {
+  await sceneReady;
   mode = nextMode;
   gate.classList.add('hidden');
   app.classList.remove('hidden');
@@ -372,5 +373,5 @@ function animate(now) {
   renderer.render(scene, camera);
 }
 refreshObjects();
-loadPublishedScene();
+const sceneReady = loadPublishedScene();
 requestAnimationFrame(animate);
