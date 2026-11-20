@@ -230,7 +230,7 @@ function downloadScene() {
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'M94-scene.json'; a.click();
+  a.href = url; a.download = 'scene.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1200);
 }
 $('save-scene').onclick = downloadScene;
