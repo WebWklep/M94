@@ -42,7 +42,7 @@ scene.add(group);
 
 const gizmo=new TransformControls(camera,renderer.domElement);
 gizmo.setMode('translate');
-scene.add(gizmo.getHelper());
+scene.add(gizmo);
 gizmo.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
 let selected=null;
 const gltfLoader=new GLTFLoader();
