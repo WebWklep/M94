@@ -52,3 +52,21 @@ button:disabled{cursor:default;opacity:.35}
 .sidebar-foot{margin-top:auto;padding-top:12px;color:#aaa;font-size:8px;letter-spacing:.14em}
 @media(max-width:850px){#app{grid-template-columns:minmax(0,1fr) 230px}.topbar{gap:10px;padding:0 10px}.topbar button{padding:0 7px;font-size:9px}.brand span{display:none}.toolbar-group{gap:3px}}
 @media(max-width:600px){#app{grid-template-columns:minmax(0,1fr) 180px;grid-template-rows:88px minmax(0,1fr)}.topbar{height:88px;display:flex;flex-wrap:wrap;align-content:center;gap:5px 8px}.brand{width:100%}.toolbar-group{order:3;overflow-x:auto;max-width:100%}.top-actions{position:absolute;right:8px;top:9px}.topbar button{height:27px;padding:0 6px;font-size:8px}.sidebar{padding:13px 9px}.view-hint{max-width:calc(100% - 30px);line-height:1.5}}
+
+
+/* M94 viewport model drop */
+#viewport.drag-over::after{
+  content:"ОТПУСТИ МОДЕЛЬ ЗДЕСЬ";
+  position:absolute;
+  inset:18px;
+  z-index:5;
+  display:grid;
+  place-items:center;
+  border:1px dashed #555;
+  background:rgba(255,255,255,.72);
+  color:#222;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.18em;
+  pointer-events:none;
+}
