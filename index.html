@@ -3,82 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>M94 — DREAM DRIVE</title>
+<meta name="theme-color" content="#11151e">
+<title>M94 — HAPPY BIRTHDAY</title>
 <link rel="stylesheet" href="./style.css">
 <script type="importmap">
-{"imports":{
-  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-}}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
 </script>
 </head>
 <body>
-<section id="gate">
-  <div class="gate-mark">M94</div>
-  <form id="login" autocomplete="off">
-    <input id="password" type="password" inputmode="numeric" autocomplete="off" placeholder="Код доступа" aria-label="Код доступа">
-    <div id="login-error" role="status"></div>
-  </form>
-  <div class="gate-note">DREAM DRIVE</div>
-</section>
-
-<main id="app" class="hidden">
-  <header class="topbar">
-    <div class="brand">M94 <span id="mode-label">DREAM DRIVE</span></div>
-    <div id="editor-tools" class="toolbar-group hidden">
-      <button id="import-button">Импорт GLB</button>
-      <button id="add-box">＋ Куб</button>
-      <button id="add-sphere">＋ Сфера</button>
-      <button id="add-cylinder">＋ Цилиндр</button>
-      <button id="save-scene" class="strong">Сохранить сцену</button>
-      <button id="load-scene">Открыть сцену</button>
-      <input id="model-input" type="file" accept=".glb,.gltf" multiple hidden>
-      <input id="scene-input" type="file" accept=".json,application/json" hidden>
-    </div>
-    <div class="top-actions">
-      <button id="play-button" class="hidden">▶ Играть</button>
-      <button id="edit-button" class="hidden">Режим сборки</button>
-      <button id="logout">Выйти</button>
-    </div>
-  </header>
-
-  <section id="viewport">
-    <div id="stage"></div>
-    <div class="view-label" id="view-label">SCENE VIEW</div>
-    <div id="editor-hint" class="view-hint hidden">Выбери объект · Перетаскивай оси · Колесо — приближение</div>
-    <div id="game-hint" class="view-hint hidden">WASD / стрелки — управление · Пробел — тормоз</div>
-    <div id="game-title" class="game-title hidden">DREAM DRIVE</div>
+<div id="game">
+  <div id="stage"></div>
+  <div class="brand">M94 <span>DREAM DRIVE</span></div>
+  <div class="hud"><span class="hud-dot"></span><span id="status">A LITTLE BIRTHDAY JOURNEY</span></div>
+  <section id="intro" class="overlay">
+    <div class="eyebrow">A SPECIAL DELIVERY</div>
+    <h1>DREAM<br><i>DRIVE</i></h1>
+    <p>Одна дорога. Одна легенда.<br>И кое-что особенное в конце.</p>
+    <button id="start">НАЧАТЬ ПОЕЗДКУ <span>↗</span></button>
+    <div class="controls-note">W A S D / ← ↑ ↓ → &nbsp; ДЛЯ УПРАВЛЕНИЯ</div>
   </section>
-
-  <aside id="sidebar" class="sidebar hidden">
-    <section class="panel">
-      <div class="panel-title"><b>Объекты сцены</b><span id="object-count">0</span></div>
-      <div id="objects"><p class="empty">Добавь первую модель</p></div>
-    </section>
-    <section class="panel">
-      <div class="panel-title"><b>Преобразование</b></div>
-      <div class="mode-buttons">
-        <button data-mode="translate" class="active">MOVE</button>
-        <button data-mode="rotate">ROTATE</button>
-        <button data-mode="scale">SCALE</button>
-      </div>
-      <div class="axis-row">
-        <label>X<input id="pos-x" type="number" step=".1" disabled></label>
-        <label>Y<input id="pos-y" type="number" step=".1" disabled></label>
-        <label>Z<input id="pos-z" type="number" step=".1" disabled></label>
-      </div>
-      <button id="make-car" class="wide-button" disabled>Назначить машиной</button>
-      <button id="delete" class="delete-button" disabled>Удалить объект</button>
-    </section>
-    <section class="panel">
-      <div class="panel-title"><b>Вид</b></div>
-      <label class="check"><input id="grid-toggle" type="checkbox" checked> Сетка</label>
-      <label class="check"><input id="ground-toggle" type="checkbox" checked> Поверхность</label>
-      <button id="frame-scene" class="wide-button">Показать всю сцену</button>
-    </section>
-    <div class="sidebar-foot">M94 · EDITOR BUILD</div>
-  </aside>
-</main>
+  <section id="finish" class="overlay hidden">
+    <div class="eyebrow">YOU MADE IT</div>
+    <h2>HAPPY<br><i>BIRTHDAY!</i></h2>
+    <p>Пусть впереди будет ещё<br>много красивых дорог.</p>
+    <button id="again">ПРОЕХАТЬ ЕЩЁ РАЗ <span>↻</span></button>
+  </section>
+  <div id="jump-flash" class="jump-flash hidden">WOOOO!</div>
+  <div class="bottom-hint" id="bottom-hint">W / ↑ — ГАЗ &nbsp;&nbsp; A D / ← → — РУЛЬ</div>
+  <div class="touch-controls">
+    <button id="left">←</button><button id="gas">↑</button><button id="right">→</button>
+  </div>
+</div>
 <script type="module" src="./main.js"></script>
 </body>
 </html>
