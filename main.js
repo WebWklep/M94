@@ -51,7 +51,7 @@ scene.add(world);
 
 const transform = new TransformControls(camera, renderer.domElement);
 transform.setMode('translate');
-scene.add(transform);
+scene.add(transform.getHelper());
 transform.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
 transform.addEventListener('objectChange', syncInspector);
 
@@ -146,28 +146,71 @@ $('add-sphere').onclick = () => addPrimitive('sphere');
 $('add-cylinder').onclick = () => addPrimitive('cylinder');
 
 $('import-button').onclick = () => $('model-input').click();
-$('model-input').addEventListener('change', async e => {
-  for (const file of e.target.files) {
-    const url = URL.createObjectURL(file);
-    try {
-      const gltf = await gltfLoader.loadAsync(url);
-      const object = gltf.scene;
-      const bounds = new THREE.Box3().setFromObject(object);
-      const size = bounds.getSize(new THREE.Vector3());
-      const center = bounds.getCenter(new THREE.Vector3());
-      const max = Math.max(size.x, size.y, size.z) || 1;
-      object.position.sub(center);
-      object.scale.multiplyScalar(4 / max);
-      object.position.y += (size.y * 4 / max) / 2;
-      addObject(object, file.name.replace(/\.(glb|gltf)$/i, ''));
-    } catch (err) {
-      console.error(err);
-      alert('Не удалось открыть модель. Попробуй файл GLB.');
-    } finally { URL.revokeObjectURL(url); }
+
+async function importModelFiles(fileList) {
+  const files = [...fileList].filter(file => /\.(glb|gltf)$/i.test(file.name));
+  if (!files.length) {
+    alert('Перетащи сюда модель .GLB или .GLTF');
+    return;
   }
+  const urls = new Map();
+  files.forEach(file => urls.set(file.name.toLowerCase(), URL.createObjectURL(file)));
+  const manager = new THREE.LoadingManager();
+  manager.setURLModifier(url => {
+    const clean = decodeURIComponent(url.split(/[?#]/)[0]);
+    const name = clean.split('/').pop().toLowerCase();
+    return urls.get(name) || url;
+  });
+  const loader = new GLTFLoader(manager);
+  try {
+    for (const file of files) {
+      const url = urls.get(file.name.toLowerCase());
+      try {
+        const gltf = await loader.loadAsync(url);
+        const object = gltf.scene;
+        object.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(object);
+        const size = bounds.getSize(new THREE.Vector3());
+        const center = bounds.getCenter(new THREE.Vector3());
+        const max = Math.max(size.x, size.y, size.z) || 1;
+        const factor = 4 / max;
+        object.position.sub(center);
+        object.scale.multiplyScalar(factor);
+        object.position.y += size.y * factor / 2;
+        addObject(object, file.name.replace(/\.(glb|gltf)$/i, ''));
+      } catch (err) {
+        console.error('M94 model import failed:', file.name, err);
+        alert('Не удалось открыть «' + file.name + '». Для надёжного импорта попробуй GLB.');
+      }
+    }
+  } finally {
+    urls.forEach(url => URL.revokeObjectURL(url));
+  }
+}
+$('model-input').addEventListener('change', async e => {
+  await importModelFiles(e.target.files);
   e.target.value = '';
 });
 
+const viewport = $('viewport');
+viewport.addEventListener('dragenter', e => {
+  e.preventDefault();
+  if (mode === 'editor') viewport.classList.add('drag-over');
+});
+viewport.addEventListener('dragover', e => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  if (mode === 'editor') viewport.classList.add('drag-over');
+});
+viewport.addEventListener('dragleave', e => {
+  if (!viewport.contains(e.relatedTarget)) viewport.classList.remove('drag-over');
+});
+viewport.addEventListener('drop', async e => {
+  e.preventDefault();
+  viewport.classList.remove('drag-over');
+  if (mode !== 'editor') return;
+  await importModelFiles(e.dataTransfer?.files || []);
+});
 document.querySelectorAll('[data-mode]').forEach(button => {
   button.onclick = () => {
     transform.setMode(button.dataset.mode);
