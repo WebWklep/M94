@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>M94 — подготовка PLY</title>
+<title>M94 — разделение PLY на части</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#111318;color:#eef0f4}
 body{max-width:760px;margin:0 auto;padding:32px 20px}
 main{border:1px solid #343945;border-radius:16px;padding:24px;background:#191d25}
-h1{font-size:25px;margin:0 0 8px}p{color:#b8bfcc;line-height:1.55}
+h1{font-size:25px;margin:0 0 8px}
+p{color:#b8bfcc;line-height:1.55}
 label{display:block;margin:22px 0 10px;font-weight:600}
 input{display:block;width:100%;padding:14px;border:1px dashed #697386;border-radius:10px;background:#11151c;color:#fff}
 button{margin-top:18px;padding:13px 18px;border:0;border-radius:10px;background:#e8edf7;color:#151922;font-weight:700;font-size:15px;cursor:pointer}
@@ -20,49 +21,51 @@ button:disabled{opacity:.45;cursor:wait}
 <body>
 <main>
 <h1>M94 / PLY Splitter</h1>
-<p>Подготовка большого файла для загрузки в GitHub. Файл обрабатывается локально в браузере: он не отправляется на этот сайт.</p>
+<p>Разделяет большой PLY на отдельные файлы по 10 МиБ. Никаких ZIP и архивов. Обработка происходит локально в браузере — исходный файл никуда не отправляется.</p>
 <label for="file">Выбери исходный файл .PLY</label>
 <input id="file" type="file" accept=".ply,application/octet-stream">
-<button id="go" disabled>Разделить и скачать архив</button>
+<button id="go" disabled>Скачать отдельные части</button>
 <div id="status">Выбери файл, чтобы начать.</div>
-<p class="small">Архив будет содержать части примерно по 18 МБ. После распаковки загрузи все файлы e30_part_… в папку models/ply репозитория M94. Исходный файл не изменяется. Для сборки частей обратно потребуется отдельный шаг.</p>
+<p class="small">Каждая часть скачается отдельным файлом e30_part_001.bin, e30_part_002.bin и т. д. Также скачается manifest.txt с информацией о порядке частей. Если Safari спросит разрешение на несколько загрузок — разреши их для этого сайта. На GitHub загружай сами BIN-файлы, не архив.</p>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 const fileInput=document.getElementById('file');
 const button=document.getElementById('go');
 const status=document.getElementById('status');
-const CHUNK=18*1024*1024;
+const CHUNK=10*1024*1024;
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function downloadBlob(blob,name){
+ return new Promise(resolve=>{
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{URL.revokeObjectURL(url);resolve();},1200);
+ });
+}
 fileInput.addEventListener('change',()=>{
  const f=fileInput.files[0];
  button.disabled=!f||!f.name.toLowerCase().endsWith('.ply');
- status.textContent=f?('Файл: '+f.name+'\\nРазмер: '+(f.size/1024/1024).toFixed(1)+' МБ\\nГотов к разделению.'):'Выбери файл.';
+ status.textContent=f?'Файл: '+f.name+'\nРазмер: '+(f.size/1024/1024).toFixed(1)+' МиБ\nГотов к разделению.':'Выбери файл.';
 });
 button.addEventListener('click',async()=>{
- const f=fileInput.files[0]; if(!f||!window.JSZip)return;
+ const f=fileInput.files[0];if(!f)return;
  button.disabled=true;
  try{
-  const zip=new JSZip();
   const count=Math.ceil(f.size/CHUNK);
   for(let i=0;i<count;i++){
    const start=i*CHUNK,end=Math.min(f.size,start+CHUNK);
-   const part=f.slice(start,end);
    const name='e30_part_'+String(i+1).padStart(3,'0')+'.bin';
-   zip.file(name,part,{binary:true,compression:'STORE'});
-   status.textContent='Подготовка части '+(i+1)+' из '+count+'…';
-   await new Promise(r=>setTimeout(r,0));
+   status.textContent='Скачиваю часть '+(i+1)+' из '+count+'…';
+   await downloadBlob(f.slice(start,end),name);
+   await pause(700);
   }
-  zip.file('README.txt','Исходный файл: '+f.name+'\\nРазмер: '+f.size+' bytes\\nЧастей: '+count+'\\nПорядок сборки: e30_part_001.bin, e30_part_002.bin, ...\\nНе переименовывайте части.\\n');
-  status.textContent='Создаю архив. Не закрывай вкладку…';
-  const blob=await zip.generateAsync({type:'blob',compression:'STORE'},m=>{
-   status.textContent='Создание архива: '+Math.round(m.percent)+'%';
-  });
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='M94_E30_PLY_parts.zip';a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-  status.textContent='Готово. Архив скачан. Распакуй его и загрузи все e30_part_… файлы в models/ply на GitHub.';
- }catch(e){status.textContent='Ошибка: '+(e&&e.message?e.message:String(e));}
- finally{button.disabled=false;}
+  const manifest='M94 BMW E30 PLY parts\nOriginal file: '+f.name+'\nOriginal size: '+f.size+' bytes\nPart size: '+CHUNK+' bytes (except possibly the last part)\nNumber of parts: '+count+'\n\nJoin the files in numeric order: e30_part_001.bin, e30_part_002.bin, ...\nDo not rename the part files.\n';
+  await downloadBlob(new Blob([manifest],{type:'text/plain;charset=utf-8'}),'manifest.txt');
+  status.textContent='Готово: скачано '+count+' отдельных частей и manifest.txt. Проверь папку «Загрузки».';
+ }catch(e){
+  status.textContent='Ошибка загрузки: '+(e&&e.message?e.message:String(e))+'. Попробуй разрешить несколько загрузок для этого сайта.';
+ }finally{button.disabled=false;}
 });
 </script>
 </body>
