@@ -21,11 +21,11 @@ h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{f
 <body>
 <div id="scene"></div>
 <header class="panel"><div class="eyebrow">M94 · 3D VIEW</div><h1>BMW E30 Sedan</h1><div class="hint">Перетаскивай мышью — вращение · Колесо — приближение</div></header>
-<div id="status">Загружаю BMW E30 из Dropbox…</div>
+<div id="status">Загружаю BMW E30 с GitHub…</div>
 <button id="reset" type="button">Сбросить вид</button>
 <script type="module">
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { USDZLoader } from 'three/addons/loaders/USDZLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const host=document.querySelector('#scene');
@@ -58,24 +58,27 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.06;controls.target.set(0,1,0);
 controls.minDistance=1;controls.maxDistance=45;controls.maxPolarAngle=Math.PI*.49;
 
+let initialCamera=new THREE.Vector3(7,4.2,8);
+let initialTarget=new THREE.Vector3(0,1,0);
 document.querySelector('#reset').addEventListener('click',()=>{
- camera.position.set(7,4.2,8);controls.target.set(0,1,0);controls.update();
+ camera.position.copy(initialCamera);controls.target.copy(initialTarget);controls.update();
 });
 
-const modelUrl='https://dl.dropboxusercontent.com/scl/fi/2188qj6popl6xckn1c4x6/bmw_3_series_e30_sedan.glb?rlkey=5k5zx0i3bffgvec9ltjs3dkal&dl=1';
-const loader=new GLTFLoader();
-loader.load(modelUrl,gltf=>{
- const model=gltf.scene;
- model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(m.map)m.map.colorSpace=THREE.SRGBColorSpace;});}}});
+const modelUrl='https://raw.githubusercontent.com/WebWklep/M94/main/models/e30/BMW_3_Series_E30_Sedan.usdz';
+const loader=new USDZLoader();
+loader.load(modelUrl,model=>{
+ model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  scene.add(model);
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
  const center=bounds.getCenter(new THREE.Vector3());
  model.position.sub(center);
  const span=Math.max(size.x,size.y,size.z);
- camera.position.set(span*1.35,span*.72,span*1.55);
+ initialCamera.set(span*1.35,span*.72,span*1.55);
+ initialTarget.set(0,size.y*.12,0);
+ camera.position.copy(initialCamera);
  camera.near=Math.max(.01,span/1000);camera.far=span*100;camera.updateProjectionMatrix();
- controls.target.set(0,size.y*.12,0);
+ controls.target.copy(initialTarget);
  controls.minDistance=span*.35;controls.maxDistance=span*8;controls.update();
  floor.position.y=-size.y*.5;
  grid.position.y=floor.position.y+.008;
@@ -87,7 +90,7 @@ loader.load(modelUrl,gltf=>{
 },err=>{
  console.error(err);
  status.classList.add('error');
- status.textContent='Не удалось загрузить GLB из Dropbox. Возможно, Dropbox блокирует запрос с сайта (CORS). Напиши мне, что показывает эта надпись — подберём другой способ размещения файла.';
+ status.textContent='Не удалось загрузить USDZ. Подробности смотри в консоли браузера; напиши мне, если машина не появилась.';
 });
 
 function render(){requestAnimationFrame(render);controls.update();renderer.render(scene,camera)}render();
