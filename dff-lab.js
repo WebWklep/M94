@@ -42,10 +42,11 @@ function clearModel(){
   model.traverse(o=>{if(o.isMesh){o.geometry?.dispose();const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m?.dispose());}});
   model=null;
 }
-function updateStats(root, parsed){
+function updateStats(root){
   let meshCount=0, materialCount=0;
-  root.traverse(o=>{if(o.isMesh){meshCount++;materialCount+=Array.isArray(o.material)?o.material.length:1;}});
-  $('geometries').textContent=String(parsed?.RWGeometryList?.length ?? '—');
+  const geometries=new Set();
+  root.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);materialCount+=Array.isArray(o.material)?o.material.length:1;}});
+  $('geometries').textContent=String(geometries.size);
   $('meshes').textContent=String(meshCount);
   $('materials').textContent=String(materialCount);
   $('textures').textContent=String(txdMap?.size ?? 0);
@@ -81,12 +82,7 @@ function rebuild(){
       });
     });
     scene.add(model);fitModel(model);
-    updateStats(model,parsed.userData?.parsed ?? null);
-    // The parser returns a Three.js Group; geometry/material counts are also reported from the group.
-    let meshCount=0,matCount=0;
-    model.traverse(o=>{if(o.isMesh){meshCount++;matCount+=Array.isArray(o.material)?o.material.length:1;}});
-    $('meshes').textContent=String(meshCount);$('materials').textContent=String(matCount);
-    $('geometries').textContent='см. лог';
+    updateStats(model);
     $('message').classList.add('hidden');
     status(txdMap?'DFF + TXD ЗАГРУЖЕНЫ':'DFF ЗАГРУЖЕН · TXD НЕ ВЫБРАН','good');
     log('Модель собрана. Meshes: '+meshCount+', materials: '+matCount+'.');
