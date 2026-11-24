@@ -31,3 +31,9 @@
 body.dragging #viewport{outline:2px solid #e7a45e;outline-offset:-5px}
 @media(max-width:850px){.workspace{grid-template-columns:62px minmax(0,1fr) 230px}.tool{width:50px}.topbar{padding:0 10px}.logo span{display:none}}
 @media(max-width:620px){.workspace{grid-template-columns:54px minmax(0,1fr) 190px}.inspector{padding:12px 9px}.topbar{height:48px}.workspace{height:calc(100% - 48px)}.top-actions button{padding:0 7px;font-size:8px}.top-center{display:none}.tool{width:44px}.logo{font-size:12px}}
+
+/* Scene builder additions */
+.tool#add-plane{color:#e7a45e}
+.tool#add-plane span{font-size:24px}
+#apply-texture:disabled,#set-car:disabled,#remove:disabled{opacity:.38;cursor:not-allowed}
+#apply-texture:not(:disabled):hover,#load-txd:hover{border-color:#e7a45e;color:#f0b478}
