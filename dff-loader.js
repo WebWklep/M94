@@ -79,11 +79,45 @@ class y {
     this.data = null, this.position = 0;
   }
   parse(s) {
-    for (this.data = new DataView(s), this.position = 0; this.position < s.byteLength; ) {
-      const t = this.readChunk(A.CHUNK_CLUMP);
-      if (t) return t;
+    this.data = new DataView(s);
+    this.position = 0;
+
+    // A normal RenderWare DFF starts with CLUMP, but some exporters prepend
+    // container/metadata chunks. Locate a structurally valid CLUMP header
+    // instead of skipping unknown top-level chunks by their payload length.
+    const candidates = [];
+    for (let offset = 0; offset + 12 <= s.byteLength; offset++) {
+      if (this.data.getUint32(offset, true) !== A.CHUNK_CLUMP) continue;
+      const length = this.data.getUint32(offset + 4, true);
+      const remaining = s.byteLength - offset - 12;
+      if (length >= 12 && length <= remaining) candidates.push(offset);
     }
-    return null;
+
+    for (const offset of candidates) {
+      try {
+        this.position = offset;
+        const clump = this.readChunk(A.CHUNK_CLUMP);
+        if (clump && clump.RWFrameList && clump.RWGeometryList && clump.RWAtomicList) {
+          if (offset !== 0) console.warn(`DFFLoader: CLUMP found at byte offset ${offset}`);
+          return clump;
+        }
+      } catch (error) {
+        console.warn(`DFFLoader: Invalid CLUMP candidate at byte offset ${offset}:`, error);
+      }
+    }
+
+    const first = s.byteLength >= 12 ? {
+      type: this.data.getUint32(0, true),
+      length: this.data.getUint32(4, true),
+      build: this.data.getUint32(8, true)
+    } : null;
+    const hex = Array.from(new Uint8Array(s, 0, Math.min(24, s.byteLength)))
+      .map(value => value.toString(16).padStart(2, "0")).join(" ");
+    throw new Error(
+      `DFFLoader: CLUMP chunk not found. File size: ${s.byteLength} bytes; ` +
+      `first header: ${first ? `type=0x${first.type.toString(16)}, length=${first.length}, build=0x${first.build.toString(16)}` : "incomplete header"}; ` +
+      `valid CLUMP candidates: ${candidates.length}; first bytes: ${hex}`
+    );
   }
   readHeader(s) {
     const t = {
