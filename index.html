@@ -5,6 +5,28 @@
 <meta name="theme-color" content="#17191d"><title>M94 — postcard studio</title>
 <link rel="stylesheet" href="./style.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script>
+window.addEventListener("error", function(e) {
+  let p = document.getElementById("m94-error");
+  if (!p) {
+    p = document.createElement("pre");
+    p.id = "m94-error";
+    p.style.cssText = "position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-height:40vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
+    document.body.appendChild(p);
+  }
+  p.textContent = "M94 startup error:\n" + (e.message || (e.target && (e.target.src || e.target.href)) || "Script load error");
+}, true);
+window.addEventListener("unhandledrejection", function(e) {
+  let p = document.getElementById("m94-error");
+  if (!p) {
+    p = document.createElement("pre");
+    p.id = "m94-error";
+    p.style.cssText = "position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-height:40vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
+    document.body.appendChild(p);
+  }
+  p.textContent = "M94 startup error:\n" + String(e.reason && (e.reason.stack || e.reason.message) || e.reason);
+});
+</script>
 </head>
 <body>
 <div id="app">
