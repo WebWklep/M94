@@ -106,6 +106,29 @@ function installGeometry(geometry, filename){
   status('ЗАГРУЖЕНА · ' + filename);
 }
 
+const DROPBOX_MODEL_URL = 'https://dl.dropboxusercontent.com/scl/fi/qwpmlzuwed8xku7lhtk0c/e30Scan.ply?rlkey=wbona7hbxlc5cm72zmk2zcb1h';
+
+async function loadFromDropbox(){
+  status('ЗАГРУЗКА ИЗ DROPBOX…');
+  $('message').classList.remove('hidden');
+  $('message').innerHTML = '<h1>Загружаю BMW E30</h1><p>Страница пытается получить скан напрямую из Dropbox. Файл большой, это может занять некоторое время.</p><div class="small">Если Dropbox заблокирует запрос, появится сообщение с запасным способом.</div>';
+  try{
+    const response = await fetch(DROPBOX_MODEL_URL, { method:'GET', mode:'cors', cache:'no-store' });
+    if(!response.ok) throw new Error('Dropbox ответил HTTP ' + response.status);
+    const buffer = await response.arrayBuffer();
+    if(buffer.byteLength < 1000) throw new Error('Dropbox вернул слишком маленький файл');
+    status('РАЗБОР МОДЕЛИ…');
+    const geometry = loader.parse(buffer);
+    installGeometry(geometry,'e30Scan.ply');
+  }catch(err){
+    console.error('Dropbox auto-load failed:',err);
+    status('АВТОЗАГРУЗКА НЕ УДАЛАСЬ');
+    $('message').innerHTML = '<h1>Dropbox не отдал модель браузеру</h1><p>Похоже, Dropbox ограничил прямую загрузку со страницы (CORS или перенаправление). Можно попробовать выбрать файл вручную.</p><button id="retry" class="primary">ВЫБРАТЬ PLY</button><div class="small">'+String(err.message || err).replace(/[<>&"]/g,'')+'</div>';
+    $('message').classList.remove('hidden');
+    $('retry').addEventListener('click',()=>$('file').click());
+  }
+}
+
 async function loadFile(file){
   if(!file) return;
   status('ЧТЕНИЕ PLY…');
@@ -179,4 +202,5 @@ function animate(){
   renderer.render(scene,camera);
 }
 animate();
-status('ОЖИДАНИЕ МОДЕЛИ');
+status('ПОДКЛЮЧЕНИЕ DROPBOX…');
+loadFromDropbox();
