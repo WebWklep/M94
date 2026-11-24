@@ -24,12 +24,21 @@ h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{f
 <div id="status">Загружаю BMW E30 с GitHub…</div>
 <button id="reset" type="button">Сбросить вид</button>
 <script type="module">
-import * as THREE from 'three';
-import { USDLoader } from 'three/addons/loaders/USDLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const status=document.querySelector('#status');
+let THREE, USDLoader, OrbitControls;
+try {
+  [THREE, { USDLoader }, { OrbitControls }] = await Promise.all([
+    import('three'),
+    import('three/addons/loaders/USDLoader.js'),
+    import('three/addons/controls/OrbitControls.js')
+  ]);
+} catch (error) {
+  status.classList.add('error');
+  status.textContent='Ошибка подключения 3D-библиотеки: '+(error?.message || String(error));
+  throw error;
+}
 
 const host=document.querySelector('#scene');
-const status=document.querySelector('#status');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#aebbc4');
 scene.fog=new THREE.Fog('#aebbc4',35,100);
@@ -90,7 +99,7 @@ loader.load(modelUrl,model=>{
 },err=>{
  console.error(err);
  status.classList.add('error');
- status.textContent='Не удалось загрузить USDZ. Подробности смотри в консоли браузера; напиши мне, если машина не появилась.';
+ status.textContent='Ошибка загрузки USDZ: '+(err?.message || String(err));
 });
 
 function render(){requestAnimationFrame(render);controls.update();renderer.render(scene,camera)}render();
