@@ -648,65 +648,54 @@ class S extends m.Loader {
         e.setAttribute("skinIndex", h), e.setAttribute("skinWeight", u);
       }
       o.push({ geometry: e, materials: E });
-    }), r.RWAtomicList.forEach((i) => {
-      const e = o[i.geometryIndex];
-      if (!e) return;
-      const { geometry: n, materials: x } = e, f = new Array(r.RWFrameList.length);
-      let U = null, T = null;
-      if (r.RWFrameList.forEach((p, H) => {
-        var M, E;
-        const d = p.RWFrame, c = new m.Bone();
-        c.name = ((M = p.RWExtension) == null ? void 0 : M.CHUNK_FRAME) || `bone_${H}`;
-        const C = new m.Matrix4();
-        C.set(
-          d.rotationMatrix[0],
-          d.rotationMatrix[3],
-          d.rotationMatrix[6],
-          d.position[0],
-          d.rotationMatrix[1],
-          d.rotationMatrix[4],
-          d.rotationMatrix[7],
-          d.position[1],
-          d.rotationMatrix[2],
-          d.rotationMatrix[5],
-          d.rotationMatrix[8],
-          d.position[2],
-          0,
-          0,
-          0,
-          1
-        ), c.applyMatrix4(C), d.parentIndex >= 0 && f[d.parentIndex] && f[d.parentIndex].add(c);
-        const l = (E = p.RWExtension) == null ? void 0 : E.CHUNK_HANIM;
-        l && (c.userData.nodeId = l.nodeId, c.userData.nodeIndex = H, l.numNodes > 0 && (T = c, U = l.nodes.map((g, R) => ({
-          id: g.nodeId,
-          index: R,
-          flags: g.flags,
-          frame: null
-        })))), f[H] = c;
-      }), U) {
-        const p = new Array(U.length), H = (c, C, l = /* @__PURE__ */ new Set()) => {
-          if (!c || l.has(c)) return null;
-          if (l.add(c), c.userData.nodeId >= 0 && c.userData.nodeId === C && d(c) === -1)
-            return c;
-          for (const E of c.children) {
-            const g = H(E, C, l);
-            if (g) return g;
-          }
-          const M = c.userData.nodeIndex + 1;
-          return M < f.length ? H(f[M], C, l) : null;
-        }, d = (c) => {
-          for (let C = 0; C < U.length; C++)
-            if (U[C].node === c) return C;
-          return -1;
-        };
-        for (let c = 0; c < U.length; c++)
-          U[c].node = H(T, U[c].id), p[c] = U[c].node;
-        p.every((c) => c !== null) && (e.skeleton = new m.Skeleton(p));
+    });
+
+    // Build the RenderWare frame hierarchy first. Atomic objects must be
+    // attached to their own frame; adding every mesh to the clump root
+    // discards door/wheel/body-part transforms.
+    const frames = r.RWFrameList.map((entry, index) => {
+      const data = entry.RWFrame;
+      const frame = new m.Group();
+      frame.name = (entry.RWExtension && entry.RWExtension.CHUNK_FRAME) || `frame_${index}`;
+      const local = new m.Matrix4().set(
+        data.rotationMatrix[0], data.rotationMatrix[3], data.rotationMatrix[6], data.position[0],
+        data.rotationMatrix[1], data.rotationMatrix[4], data.rotationMatrix[7], data.position[1],
+        data.rotationMatrix[2], data.rotationMatrix[5], data.rotationMatrix[8], data.position[2],
+        0, 0, 0, 1
+      );
+      local.decompose(frame.position, frame.quaternion, frame.scale);
+      return frame;
+    });
+
+    frames.forEach((frame, index) => {
+      const parentIndex = r.RWFrameList[index].RWFrame.parentIndex;
+      if (parentIndex >= 0 && frames[parentIndex]) frames[parentIndex].add(frame);
+      else a.add(frame);
+    });
+
+    r.RWAtomicList.forEach((atomic, atomicIndex) => {
+      const geometryEntry = o[atomic.geometryIndex];
+      if (!geometryEntry) {
+        console.warn(`DFFLoader: Atomic ${atomicIndex} references missing geometry ${atomic.geometryIndex}`);
+        return;
       }
-    }), o.forEach((i) => {
-      let e;
-      i.skeleton ? (e = new m.SkinnedMesh(i.geometry, i.materials), e.add(i.skeleton.bones[0]), e.bind(i.skeleton)) : e = new m.Mesh(i.geometry, i.materials), e.rotation.set(-Math.PI / 2, 0, Math.PI), a.add(e);
-    }), a;
+      const mesh = new m.Mesh(geometryEntry.geometry, geometryEntry.materials);
+      mesh.name = `atomic_${atomicIndex}_geometry_${atomic.geometryIndex}`;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      const frame = frames[atomic.frameIndex];
+      if (frame) frame.add(mesh);
+      else {
+        console.warn(`DFFLoader: Atomic ${atomicIndex} references missing frame ${atomic.frameIndex}; attached to clump root`);
+        a.add(mesh);
+      }
+    });
+
+    // GTA San Andreas uses Z-up coordinates; convert the complete clump
+    // once so both frame translations and mesh vertices stay in sync.
+    a.rotation.set(-Math.PI / 2, 0, Math.PI);
+    a.updateMatrixWorld(true);
+    return a;
   }
 }
 const L = {
