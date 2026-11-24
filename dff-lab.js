@@ -85,7 +85,7 @@ function rebuild(){
     updateStats(model);
     $('message').classList.add('hidden');
     status(txdMap?'DFF + TXD ЗАГРУЖЕНЫ':'DFF ЗАГРУЖЕН · TXD НЕ ВЫБРАН','good');
-    log('Модель собрана. Meshes: '+meshCount+', materials: '+matCount+'.');
+    log('Модель собрана. Meshes: '+$('meshes').textContent+', materials: '+$('materials').textContent+'.');
     if(!txdMap)log('Текстуры не назначены: откройте TXD и модель пересоберётся автоматически.');
   }catch(error){
     console.error(error);clearModel();status('ОШИБКА ПАРСЕРА','bad');
