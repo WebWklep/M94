@@ -55,21 +55,20 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/exporters/GLTFExporter.js';
-import createXAtlas from 'https://esm.sh/xatlas-wasm@0.1.3';
-import { WebIO } from 'https://esm.sh/@gltf-transform/core@4.2.1';
-import { ALL_EXTENSIONS } from 'https://esm.sh/@gltf-transform/extensions@4.2.1';
-import { prune, dedup, quantize, meshopt } from 'https://esm.sh/@gltf-transform/functions@4.2.1';
-import { MeshoptEncoder, MeshoptDecoder } from 'https://esm.sh/meshoptimizer@1.0.1';
-
 const $ = (id)=>document.getElementById(id);
-let sourceFile=null, sourceScene=null, processedBlob=null, uvFiles=[], reportText='', xatlasModule=null;
+let sourceFile=null, sourceScene=null, processedBlob=null, uvFiles=[], reportText='';
+let xatlasModule=null;
 let originalBytes=0, totalVertices=0, totalMeshes=0, uvMeshes=0;
 const status=(s,kind='')=>{$('status').textContent=s;$('status').className='status '+kind;};
+window.addEventListener('error',e=>status('Ошибка JavaScript: '+(e.message||'неизвестная ошибка'),'error'));
+window.addEventListener('unhandledrejection',e=>status('Ошибка модуля: '+(e.reason?.message||String(e.reason)),'error'));
 const sizeText=n=>n<1024*1024?(n/1024).toFixed(1)+' KB':(n/1024/1024).toFixed(2)+' MB';
 const setProgress=n=>$('progress').style.width=Math.max(0,Math.min(100,n))+'%';
 
 $('file').addEventListener('change',async e=>{
  const file=e.target.files?.[0]; if(!file)return;
+ status('Выбран файл: '+file.name+' · '+sizeText(file.size)+'\\nНачинаю чтение…');
+ $('beforeSize').textContent=sizeText(file.size);
  sourceFile=file;sourceScene=null;processedBlob=null;uvFiles=[];reportText='';originalBytes=file.size;
  $('beforeSize').textContent=sizeText(file.size);$('meshCount').textContent='…';$('vertexCount').textContent='…';$('uvCount').textContent='…';
  $('uvBtn').disabled=$('optBtn').disabled=$('reportBtn').disabled=true;
@@ -100,7 +99,7 @@ $('uvBtn').addEventListener('click',async()=>{
  if(!sourceScene)return;
  $('uvBtn').disabled=true;uvFiles=[];setProgress(14);status('Загружаю UV-движок xatlas…');
  try{
-  if(!xatlasModule)xatlasModule=await createXAtlas();
+  if(!xatlasModule){const mod=await import('https://esm.sh/xatlas-wasm@0.1.3');const createXAtlas=mod.default||mod.createXAtlas;if(!createXAtlas)throw new Error('В библиотеке xatlas не найдена функция инициализации');xatlasModule=await createXAtlas();}
   const meshes=[];sourceScene.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position)meshes.push(o);});
   const lines=['UV GENERATION REPORT',''];
   for(let mi=0;mi<meshes.length;mi++){
@@ -144,6 +143,12 @@ $('optBtn').addEventListener('click',async()=>{
  if(!sourceScene||!sourceFile)return;
  $('optBtn').disabled=true;setProgress(10);status('Подготавливаю GLB для сжатия…');
  try{
+  const [{WebIO},{ALL_EXTENSIONS},{prune,dedup,quantize,meshopt},{MeshoptEncoder,MeshoptDecoder}]=await Promise.all([
+   import('https://esm.sh/@gltf-transform/core@4.2.1'),
+   import('https://esm.sh/@gltf-transform/extensions@4.2.1'),
+   import('https://esm.sh/@gltf-transform/functions@4.2.1'),
+   import('https://esm.sh/meshoptimizer@1.0.1')
+  ]);
   await MeshoptEncoder.ready;await MeshoptDecoder.ready;
   const raw=await exportScene(sourceScene);setProgress(30);
   const io=new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});
