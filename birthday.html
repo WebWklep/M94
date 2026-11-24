@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10151c">
+<title>Happy Birthday — M94</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10151c;color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+#scene{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
+.vignette{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(8,13,20,.52),transparent 32%,transparent 65%,rgba(8,13,20,.65))}
+.top{position:fixed;top:clamp(22px,5vh,54px);left:0;right:0;text-align:center;padding:0 20px;pointer-events:none}
+.eyebrow{font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:#f4bd7b;opacity:.95}
+h1{margin:12px 0 0;font-size:clamp(34px,7vw,76px);line-height:.98;letter-spacing:-.055em;font-weight:850;text-shadow:0 5px 30px #0008}
+.sub{margin-top:13px;font-size:clamp(11px,1.6vw,14px);letter-spacing:.18em;color:#d5dce4;text-transform:uppercase}
+.bottom{position:fixed;bottom:clamp(18px,4vh,38px);left:0;right:0;text-align:center;padding:0 20px;pointer-events:none}
+.bottom span{display:inline-block;padding:11px 17px;border:1px solid #ffffff38;border-radius:99px;background:#0d141b88;backdrop-filter:blur(10px);font-size:10px;letter-spacing:.2em;color:#e9edf2}
+#sound{position:fixed;right:18px;bottom:18px;width:38px;height:38px;border:1px solid #ffffff35;border-radius:50%;background:#0d141b99;color:#fff;display:grid;place-items:center;font-size:15px;cursor:pointer;z-index:3}
+#sound:focus-visible{outline:2px solid #f4bd7b;outline-offset:3px}
+@media(max-width:600px){.sub{letter-spacing:.1em}.bottom span{font-size:9px;letter-spacing:.12em}}
+</style>
+<script type="importmap">{"imports":{"three":"https://esm.sh/three@0.160.0"}}</script>
+</head>
+<body>
+<div id="scene"></div><div class="vignette"></div>
+<header class="top"><div class="eyebrow">A little surprise from M94</div><h1>HAPPY<br>BIRTHDAY</h1><div class="sub">Make a wish. Enjoy the ride.</div></header>
+<footer class="bottom"><span>BUILT FOR YOUR SPECIAL DAY · M94</span></footer>
+<button id="sound" aria-label="Звук включить или выключить" title="Звук">♪</button>
+<script type="module">
+import * as THREE from 'three';
+const host=document.querySelector('#scene');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#9db2c4');scene.fog=new THREE.Fog('#9db2c4',28,75);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,150);
+camera.position.set(17,12,23);camera.lookAt(1,1,0);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xdceaff,0x48515b,2.0));
+const sun=new THREE.DirectionalLight(0xffe1bd,3.1);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=25;sun.shadow.camera.bottom=-25;scene.add(sun);
+const mat=(color,roughness=.7,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const asphalt=mat('#343b43'),edge=mat('#d4c8ac'),grass=mat('#64766e'),paint=mat('#d9d6cb',.32,.28),glass= new THREE.MeshStandardMaterial({color:'#233846',metalness:.35,roughness:.18}),rubber=mat('#17191c'),rim=mat('#aab0b3',.28,.8),lamp=mat('#f4e7c1',.25),red=mat('#b34e46',.4);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(120,70),grass);ground.rotation.x=-Math.PI/2;ground.position.y=-.13;ground.receiveShadow=true;scene.add(ground);
+const road=new THREE.Mesh(new THREE.BoxGeometry(62,.12,8),asphalt);road.position.set(0,-.04,0);road.receiveShadow=true;scene.add(road);
+for(let x=-29;x<30;x+=4){const dash=new THREE.Mesh(new THREE.BoxGeometry(2.1,.025,.12),edge);dash.position.set(x,.035,0);scene.add(dash)}
+// Distant soft hills and warm horizon
+for(let i=0;i<9;i++){const hill=new THREE.Mesh(new THREE.SphereGeometry(1,16,10),mat(i%2?'#7e9289':'#879a91'));hill.scale.set(8+i%3*2,2.4+i%2,5);hill.position.set(-28+i*8,-1.5,-19-i%3*2);scene.add(hill)}
+function box(parent,w,h,d,material,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function makeCar(){
+ const car=new THREE.Group();const body=mat('#343f4a',.34,.48),dark=mat('#1b2229',.45,.2);
+ box(car,5.15,.72,2.08,body,0,.85,0);
+ box(car,2.9,.82,1.82,body,-.25,1.52,0);
+ // classic squared cabin glazing
+ box(car,2.55,.58,1.72,glass,-.22,1.58,0);
+ box(car,.12,.66,1.92,body,-1.52,1.48,0);
+ box(car,.12,.66,1.92,body,1.04,1.48,0);
+ box(car,.13,.78,2.1,body,-2.05,1.03,0);
+ box(car,.13,.78,2.1,body,2.05,1.03,0);
+ box(car,1.18,.16,2.12,dark,1.92,.48,0);
+ box(car,.75,.17,2.13,dark,-2.18,.48,0);
+ // front grille and paired lamps
+ box(car,.1,.36,.62,dark,2.64,.98,0);
+ for(const z of [-.69,.69]){box(car,.12,.28,.48,lamp,2.66,1.1,z);box(car,.1,.25,.42,red,-2.66,1.1,z)}
+ for(const x of [-1.65,1.55])for(const z of [-1.08,1.08]){
+  const wheel=new THREE.Group();wheel.position.set(x,.55,z);
+  const tire=new THREE.Mesh(new THREE.CylinderGeometry(.53,.53,.28,24),rubber);tire.rotation.x=Math.PI/2;tire.castShadow=true;wheel.add(tire);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.295,12),rim);hub.rotation.x=Math.PI/2;hub.castShadow=true;wheel.add(hub);
+  for(let s=0;s<5;s++){const spoke=box(wheel,.07,.43,.07,rim,0,0,0);spoke.rotation.z=s*Math.PI/5}
+  car.add(wheel);car.userData.wheels??=[];car.userData.wheels.push(wheel);
+ }
+ // bumpers, mirrors, subtle twin kidney grille
+ box(car,.13,.17,2.18,dark,2.68,.72,0);box(car,.13,.17,2.18,dark,-2.68,.72,0);
+ for(const z of [-.12,.12])box(car,.035,.27,.12,rim,2.72,.99,z);
+ for(const z of [-1.12,1.12])box(car,.28,.13,.2,body,-.9,1.8,z);
+ return car;
+}
+const car=makeCar();car.position.set(-14,0,.0);scene.add(car);
+// Ramp on the road, with visible side profile
+const rampGeo=new THREE.BufferGeometry();const verts=new Float32Array([0,0,-2.8,4,0,-2.8,4,1.8,-2.8,0,0,2.8,4,0,2.8,4,1.8,2.8]);rampGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));rampGeo.setIndex([0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2]);rampGeo.computeVertexNormals();
+const ramp=new THREE.Mesh(rampGeo,new THREE.MeshStandardMaterial({color:'#b9784f',roughness:.8,side:THREE.DoubleSide}));ramp.position.set(3,-.02,0);ramp.castShadow=true;ramp.receiveShadow=true;scene.add(ramp);
+for(let i=0;i<4;i++){const stripe=new THREE.Mesh(new THREE.BoxGeometry(.12,.035,5.5),edge);stripe.position.set(3.35+i*.72,.25+i*.32,0);stripe.rotation.z=-Math.atan2(1.8,4);scene.add(stripe)}
+// Birthday sign at the end of the road
+const sign=new THREE.Group();sign.position.set(13,0,-.5);scene.add(sign);
+const postMat=mat('#e6d4b2'),boardMat=mat('#17232b',.4,.3);
+for(const z of [-1.7,1.7]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,4,12),postMat);post.position.set(0,2,z);post.castShadow=true;sign.add(post)}
+const board=box(sign, .35,2.1,4.4,boardMat,0,3,0);
+const trim=box(sign,.12,1.85,4.15,mat('#e6aa70',.3,.3),.2,3,0);
+const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;const ctx=canvas.getContext('2d');ctx.fillStyle='#17232b';ctx.fillRect(0,0,1024,512);ctx.strokeStyle='#e6aa70';ctx.lineWidth=13;ctx.strokeRect(18,18,988,476);ctx.textAlign='center';ctx.fillStyle='#f4c58f';ctx.font='bold 112px Arial';ctx.fillText('HAPPY',512,215);ctx.fillText('BIRTHDAY!',512,355);
+const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const signFace=new THREE.Mesh(new THREE.PlaneGeometry(4.18,2.05),new THREE.MeshBasicMaterial({map:tex}));signFace.position.set(.205,3,0);signFace.rotation.y=Math.PI/2;sign.add(signFace);
+// Tiny glowing balloons near sign
+for(let i=0;i<7;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.27,16,12),mat(['#e6a66e','#e9d9b8','#a7b8c5'][i%3],.3));b.position.set(12.5+Math.sin(i*2)*.8,4.7+(i%3)*.55,-2.5+i*.8);scene.add(b);const thread=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.7,5),postMat);thread.position.copy(b.position).add(new THREE.Vector3(0,-.48,0));scene.add(thread)}
+// Warm dust-like sparkles
+const particles=[];for(let i=0;i<90;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.035+Math.random()*.035,6,6),mat('#f4c58f'));p.position.set((Math.random()-.5)*42,Math.random()*8-1,(Math.random()-.5)*18);scene.add(p);particles.push(p)}
+let start=performance.now(),paused=false;const duration=14500;const clock=new THREE.Clock();
+function smooth(t){return t*t*(3-2*t)}
+function animate(now){
+ requestAnimationFrame(animate);const elapsed=(now-start)/1000;const t=Math.min(elapsed/(duration/1000),1);
+ const travel=smooth(Math.min(t/.82,1));car.position.x=-14+travel*24;
+ const jumpStart=.59,jumpEnd=.78;if(t>jumpStart&&t<jumpEnd){const u=(t-jumpStart)/(jumpEnd-jumpStart);car.position.y=Math.sin(u*Math.PI)*2.5;car.rotation.z=Math.sin(u*Math.PI)*-.12}else{car.position.y=0;car.rotation.z=0}
+ const roll=elapsed*3.8;for(const w of car.userData.wheels)w.rotation.x=roll;
+ if(t>.84){const pulse=1+Math.sin(elapsed*2.5)*.025;sign.scale.setScalar(pulse)}
+ particles.forEach((p,i)=>{p.position.y+=Math.sin(elapsed+i)*.0015;p.material.opacity=1});
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+const soundBtn=document.querySelector('#sound');let audio=null,on=false;
+soundBtn.addEventListener('click',()=>{try{if(!audio){audio=new (window.AudioContext||window.webkitAudioContext)();}if(audio.state==='suspended')audio.resume();on=!on;soundBtn.textContent=on?'♫':'♪';if(on){const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=523.25;gain.gain.setValueAtTime(.045,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+1.1);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+1.1)}}catch(e){soundBtn.textContent='♪'}});
+</script>
+</body></html>
