@@ -89,8 +89,11 @@ function rebuild(){
     if(!txdMap)log('Текстуры не назначены: откройте TXD и модель пересоберётся автоматически.');
   }catch(error){
     console.error(error);clearModel();status('ОШИБКА ПАРСЕРА','bad');
-    $('message').textContent='Не удалось собрать модель: '+(error?.message||String(error));
-    $('message').classList.remove('hidden');log('ОШИБКА: '+(error?.stack||error));
+    const errorText=(error?.name?error.name+': ':'')+(error?.message||String(error));
+    $('message').textContent='Не удалось собрать модель: '+errorText;
+    $('message').classList.remove('hidden');
+    log('ОШИБКА: '+errorText);
+    if(error?.stack)log(String(error.stack).split('\n').slice(1,5).join(' | '));
   }
 }
 $('load-dff').addEventListener('click',()=>$('dff-file').click());
