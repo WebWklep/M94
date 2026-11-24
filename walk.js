@@ -87,7 +87,7 @@ function installGeometry(geometry, filename){
     const material = new THREE.PointsMaterial({
       color:hasColors ? 0xffffff : 0xc4cbd2,
       vertexColors:hasColors,
-      size:0.026,
+      size:0.065,
       sizeAttenuation:true
     });
     vehicle = new THREE.Points(geometry, material);
@@ -103,7 +103,12 @@ function installGeometry(geometry, filename){
   camera.rotation.set(0,0,0);
   $('message').classList.add('hidden');
   $('walk').disabled = false;
-  status('ЗАГРУЖЕНА · ' + filename);
+  if(!hasFaces){
+    $('message').innerHTML = '<h1>Скан загружен как облако точек</h1><p>В файле не обнаружены полигоны поверхности. Я увеличил размер точек, чтобы скан читался плотнее. Само превращение облака в кузов с полигонами требует отдельной реконструкции поверхности.</p><button id="continue" class="primary">ПРОДОЛЖИТЬ</button>';
+    $('message').classList.remove('hidden');
+    $('continue').addEventListener('click',()=>$('message').classList.add('hidden'));
+  }
+  status((hasFaces ? 'ПОВЕРХНОСТЬ' : 'ОБЛАКО ТОЧЕК') + ' · ' + geometry.getAttribute('position').count.toLocaleString('ru-RU') + ' ВЕРШИН');
 }
 
 const DROPBOX_MODEL_URL = 'https://dl.dropboxusercontent.com/scl/fi/qwpmlzuwed8xku7lhtk0c/e30Scan.ply?rlkey=wbona7hbxlc5cm72zmk2zcb1h';
