@@ -1,173 +1,104 @@
 <!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111820">
-<title>M94 · GLB Lab</title>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111820"><title>M94 · BMW Texture Lab</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111820;color:#edf2f5;font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:980px;margin:auto;padding:34px 20px 70px}.eyebrow{color:#e6b77d;font-size:11px;letter-spacing:.22em;text-transform:uppercase}h1{font-size:clamp(30px,6vw,54px);line-height:1.02;letter-spacing:-.05em;margin:12px 0}p{color:#aebbc4}.sub{max-width:680px}.panel{margin-top:22px;padding:22px;border:1px solid #ffffff20;border-radius:16px;background:#1a252e}.drop{display:block;border:1px dashed #71808a;border-radius:12px;padding:26px;text-align:center;background:#111a22;cursor:pointer}.drop strong{display:block;font-size:17px;margin-bottom:5px}.drop input{display:none}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:1px solid #ffffff35;border-radius:9px;padding:11px 15px;background:#253440;color:#fff;font:inherit;cursor:pointer}.btn.primary{border-color:#e6b77d;color:#ffe0b8}.btn:disabled{opacity:.4;cursor:not-allowed}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px}.stat{padding:12px;border-radius:10px;background:#111a22}.stat small{display:block;color:#91a0aa}.stat b{font-size:18px}.status{margin-top:14px;padding:12px;border-radius:9px;background:#111a22;color:#c6d1d8;white-space:pre-wrap;overflow-wrap:anywhere}.status.error{color:#ffc4b8}.status.ok{color:#c5e7c8}.note{font-size:12px;color:#91a0aa}.meshlist{margin-top:14px;max-height:240px;overflow:auto;border:1px solid #ffffff18;border-radius:10px}.mesh{display:flex;justify-content:space-between;gap:12px;padding:8px 11px;border-bottom:1px solid #ffffff12;font-size:12px}.mesh:last-child{border:0}.mesh span:last-child{color:#aebbc4;white-space:nowrap}.bar{height:7px;background:#33414b;border-radius:99px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:#e6b77d;transition:width .2s}@media(max-width:600px){.wrap{padding:24px 14px 50px}.panel{padding:16px}}
-</style>
-</head>
-<body>
-<main class="wrap">
-<div class="eyebrow">M94 · 3D WORKSHOP</div>
-<h1>GLB Optimizer</h1>
-<p class="sub">Локальная обработка 3D-моделей прямо в браузере. Файл остаётся на твоём устройстве и не загружается на сервер.</p>
-
-<section class="panel">
-<label class="drop" for="file">
-<strong>Выбрать исходный GLB</strong>
-<span>Нажми сюда или перетащи файл · поддерживается .glb</span>
-<input id="file" type="file" accept=".glb,model/gltf-binary">
-</label>
-<div class="stats">
-<div class="stat"><small>Исходный файл</small><b id="beforeSize">—</b></div>
-<div class="stat"><small>Геометрия</small><b id="meshCount">—</b></div>
-<div class="stat"><small>Вершины</small><b id="vertexCount">—</b></div>
-<div class="stat"><small>UV в источнике</small><b id="uvCount">—</b></div>
-</div>
-<div class="meshlist" id="meshList" hidden></div>
-<div class="row">
-<button class="btn primary" id="uvBtn" disabled>Создать UV-развёртку</button>
-<button class="btn" id="optBtn" disabled>Сжать GLB</button>
-<button class="btn" id="reportBtn" disabled>Скачать отчёт</button>
-</div>
-<div class="bar"><i id="progress"></i></div>
-<div class="status" id="status">Сначала выбери исходный GLB.</div>
-<p class="note">UV создаются отдельно для каждого объекта-сетки. Если колёса в исходной модели являются отдельными объектами, их UV можно будет отличить в отчёте. Если кузов и колёса объединены в одну сетку, сначала потребуется разделить их.</p>
-</section>
-
-<section class="panel">
-<div class="eyebrow">EXPORT</div>
-<h2>Скачать результат</h2>
-<p>После обработки появятся отдельные файлы модели и UV-карт.</p>
-<div class="row">
-<button class="btn primary" id="downloadUv" disabled>Скачать UV-карты PNG</button>
-<button class="btn" id="downloadGlb" disabled>Скачать обработанный GLB</button>
-</div>
-<div class="status" id="result">Пока нет готового результата.</div>
-</section>
-<p class="note">Инструменты: Three.js, glTF Transform, Meshoptimizer и xatlas. Экспорт зависит от структуры исходной модели и возможностей браузера. Целевой размер 25 МБ не гарантируется автоматически — итоговый размер будет измерен после сжатия.</p>
+*{box-sizing:border-box}body{margin:0;background:#111820;color:#edf2f5;font:14px/1.5 Inter,system-ui,sans-serif}.wrap{max-width:1180px;margin:auto;padding:24px 18px 60px}.eyebrow{color:#e6b77d;font-size:10px;letter-spacing:.2em;text-transform:uppercase}h1{font-size:clamp(28px,5vw,46px);line-height:1.05;margin:8px 0}p,.muted{color:#aebbc4}.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;margin-top:20px}.panel{padding:17px;border:1px solid #ffffff20;border-radius:14px;background:#1a252e;min-width:0}.viewport{height:430px;background:#aebbc4;border-radius:10px;overflow:hidden;position:relative}.viewport canvas{display:block;width:100%;height:100%}.file{display:block;padding:18px;border:1px dashed #81909a;border-radius:10px;background:#111a22;text-align:center;cursor:pointer}.file input{display:block;margin:10px auto 0;max-width:100%}.btn,select{border:1px solid #ffffff35;border-radius:8px;padding:9px 11px;background:#253440;color:#fff;font:inherit;max-width:100%}.btn{cursor:pointer}.btn:disabled{opacity:.4;cursor:not-allowed}.primary{border-color:#e6b77d;color:#ffe0b8}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{padding:11px;border-radius:8px;background:#111a22;color:#d1dbe1;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.status.error{color:#ffc4b8}.status.ok{color:#c5e7c8}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{background:#111a22;padding:9px;border-radius:8px}.stat small{display:block;color:#91a0aa}.stat b{font-size:17px}.meshlist{max-height:245px;overflow:auto;margin-top:10px;border:1px solid #ffffff20;border-radius:8px}.meshrow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px;border-bottom:1px solid #ffffff12;align-items:center}.meshrow:last-child{border:0}.meshrow label{min-width:0;overflow-wrap:anywhere}.meshrow small{display:block;color:#91a0aa}.field{display:flex;flex-direction:column;gap:5px;margin-top:12px}.field label{color:#cbd5dc}.bar{height:6px;background:#34434e;border-radius:20px;overflow:hidden;margin-top:12px}.bar i{display:block;width:0;height:100%;background:#e6b77d}@media(max-width:820px){.layout{grid-template-columns:1fr}.viewport{height:330px}} 
+</style></head><body><main class="wrap">
+<div class="eyebrow">M94 · 3D WORKSHOP</div><h1>BMW Texture Lab</h1>
+<p>Загрузи оригинальный GLB. Сначала осмотрим модель, затем создадим UV для выбранных частей, наложим твои текстуры и только после этого сожмём итоговый файл.</p>
+<section class="panel"><label class="file"><b>Выбрать исходный GLB</b><br><span class="muted">Файл обрабатывается локально в браузере</span><input id="file" type="file" accept=".glb,model/gltf-binary"></label>
+<div class="status" id="status">Ожидаю файл. После выбора появится 3D-просмотр и список деталей.</div><div class="bar"><i id="progress"></i></div>
+<div class="stats"><div class="stat"><small>Размер исходника</small><b id="size">—</b></div><div class="stat"><small>Объекты-сетки</small><b id="meshes">—</b></div><div class="stat"><small>Вершины</small><b id="vertices">—</b></div></div></section>
+<div class="layout"><section class="panel"><div class="eyebrow">LIVE PREVIEW</div><div class="viewport" id="viewport"></div><p class="muted">Мышь — вращение · колёсико — приближение · выбери деталь справа, чтобы выделить её</p>
+<div class="actions"><button class="btn" id="reset" disabled>Сбросить вид</button><button class="btn" id="report" disabled>Скачать отчёт</button></div></section>
+<section class="panel"><div class="eyebrow">PARTS & UV</div><div class="field"><label for="part">Выбранная деталь</label><select id="part" disabled><option>Сначала загрузи модель</option></select></div>
+<div class="field"><label for="role">Группа детали</label><select id="role" disabled><option value="body">Кузов</option><option value="wheels">Колёса</option><option value="other">Другое</option></select></div>
+<div class="actions"><button class="btn primary" id="makeUv" disabled>Создать UV выбранной детали</button><button class="btn" id="uvPng" disabled>Скачать UV PNG</button></div>
+<div class="field"><label for="texture">Твоя текстура JPG / PNG</label><input id="texture" type="file" accept="image/png,image/jpeg" disabled></div>
+<div class="actions"><button class="btn" id="applyRole" disabled>Применить к группе</button></div>
+<div class="meshlist" id="meshlist"></div></section></div>
+<section class="panel" style="margin-top:16px"><div class="eyebrow">FINAL EXPORT</div><h2>Сжать и скачать BMW</h2><p>Сжатие геометрии Meshopt и уменьшение точности вершин. После экспорта проверим реальный размер — цель 20 МБ, но она зависит от исходной модели и текстур.</p>
+<div class="actions"><button class="btn primary" id="compress" disabled>Сжать модель</button><button class="btn" id="download" disabled>Скачать GLB</button></div><div class="status" id="result">Пока ничего не экспортировано.</div></section>
+<p class="muted">Важно: UV-развёртка создаётся отдельно для каждой выбранной сетки. Если кузов или колёса объединены в один объект, их сначала нужно разделить. Автоматическая UV-развёртка раскладывает поверхность, но не угадывает, какая сетка является кузовом или колесом — это назначается вручную.</p>
 </main>
-
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/loaders/GLTFLoader.js';
-import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/exporters/GLTFExporter.js';
-const $ = (id)=>document.getElementById(id);
-let sourceFile=null, sourceScene=null, processedBlob=null, uvFiles=[], reportText='';
-let xatlasModule=null;
-let originalBytes=0, totalVertices=0, totalMeshes=0, uvMeshes=0;
-const status=(s,kind='')=>{$('status').textContent=s;$('status').className='status '+kind;};
-window.addEventListener('error',e=>status('Ошибка JavaScript: '+(e.message||'неизвестная ошибка'),'error'));
-window.addEventListener('unhandledrejection',e=>status('Ошибка модуля: '+(e.reason?.message||String(e.reason)),'error'));
-const sizeText=n=>n<1024*1024?(n/1024).toFixed(1)+' KB':(n/1024/1024).toFixed(2)+' MB';
-const setProgress=n=>$('progress').style.width=Math.max(0,Math.min(100,n))+'%';
-
+const $=id=>document.getElementById(id);let THREE,OrbitControls,GLTFLoader,GLTFExporter,renderer,scene,camera,controls,root,meshes=[],selected=null,atlasLib=null,uvBlob=null,textureFile=null,finalBlob=null,sourceName='BMW';
+const status=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
+const progress=n=>$('progress').style.width=n+'%';
+const fmt=n=>n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function setupView(){
+ scene=new THREE.Scene();scene.background=new THREE.Color('#aebbc4');
+ camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(5,3,6);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;
+ $('viewport').replaceChildren(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xffffff,0x59616a,2));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(5,9,7);scene.add(light);
+ controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+ const resize=()=>{const w=$('viewport').clientWidth,h=$('viewport').clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};new ResizeObserver(resize).observe($('viewport'));resize();
+ const floor=new THREE.GridHelper(30,30);floor.position.y=-.02;scene.add(floor);
+ function frame(){requestAnimationFrame(frame);if(renderer&&scene){controls.update();renderer.render(scene,camera)}}frame();
+}
+function selectMesh(i){selected=meshes[i]||null;if(!selected)return;$('part').value=String(i);$('role').value=selected.userData.m94Role||'body';meshes.forEach(m=>{if(m.material){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mat=>{if(mat.emissive)mat.emissive.set(m===selected?0x263d50:0x000000)})}})}
+function refreshList(){ $('part').innerHTML=meshes.map((m,i)=>'<option value="'+i+'">'+(i+1)+'. '+esc(m.name||'Mesh '+(i+1))+'</option>').join('');$('part').disabled=false;$('role').disabled=false;$('meshlist').innerHTML=meshes.map((m,i)=>'<div class="meshrow"><label><b>'+(i+1)+'. '+esc(m.name||'Mesh '+(i+1))+'</b><small>'+m.geometry.attributes.position.count.toLocaleString('ru-RU')+' вершин · '+(m.geometry.attributes.uv?'UV есть':'UV нет')+'</small></label><button class="btn" data-select="'+i+'">Выбрать</button></div>').join('');$('meshlist').querySelectorAll('[data-select]').forEach(b=>b.addEventListener('click',()=>selectMesh(Number(b.dataset.select))));}
+$('part').addEventListener('change',()=>selectMesh(Number($('part').value)));
+$('role').addEventListener('change',()=>{if(selected)selected.userData.m94Role=$('role').value});
 $('file').addEventListener('change',async e=>{
- const file=e.target.files?.[0]; if(!file)return;
- status('Выбран файл: '+file.name+' · '+sizeText(file.size)+'\\nНачинаю чтение…');
- $('beforeSize').textContent=sizeText(file.size);
- sourceFile=file;sourceScene=null;processedBlob=null;uvFiles=[];reportText='';originalBytes=file.size;
- $('beforeSize').textContent=sizeText(file.size);$('meshCount').textContent='…';$('vertexCount').textContent='…';$('uvCount').textContent='…';
- $('uvBtn').disabled=$('optBtn').disabled=$('reportBtn').disabled=true;
- $('downloadUv').disabled=$('downloadGlb').disabled=true;$('result').textContent='Пока нет готового результата.';
- $('meshList').hidden=true;setProgress(4);status('Читаю GLB…');
+ const file=e.target.files?.[0];if(!file)return;
+ $('file').disabled=true;progress(2);status('Выбран '+file.name+' ('+fmt(file.size)+'). Подключаю 3D-движок…');
  try{
-  const buffer=await file.arrayBuffer();
-  const loader=new GLTFLoader();
-  const gltf=await new Promise((resolve,reject)=>loader.parse(buffer,'',resolve,reject));
-  sourceScene=gltf.scene;const rows=[];totalVertices=0;totalMeshes=0;uvMeshes=0;
-  sourceScene.traverse(o=>{
-   if(!o.isMesh||!o.geometry?.attributes?.position)return;
-   totalMeshes++;const n=o.geometry.attributes.position.count;totalVertices+=n;
-   const hasUV=!!o.geometry.attributes.uv;if(hasUV)uvMeshes++;
-   rows.push({name:o.name||('Mesh '+totalMeshes),vertices:n,uv:hasUV?'есть':'нет'});
-  });
-  $('meshCount').textContent=String(totalMeshes);$('vertexCount').textContent=totalVertices.toLocaleString('ru-RU');$('uvCount').textContent=uvMeshes+' / '+totalMeshes;
-  $('meshList').innerHTML=rows.map((r,i)=>'<div class="mesh"><span>'+String(i+1)+'. '+escapeHtml(r.name)+'</span><span>'+r.vertices.toLocaleString('ru-RU')+' · UV: '+r.uv+'</span></div>').join('');
-  $('meshList').hidden=false;
-  reportText=['GLB LAB REPORT','File: '+file.name,'Size: '+file.size+' bytes','Meshes: '+totalMeshes,'Vertices: '+totalVertices,'Meshes with UV0: '+uvMeshes,'','Objects:',...rows.map((r,i)=>(i+1)+'. '+r.name+' | vertices '+r.vertices+' | UV0 '+r.uv)].join('\n');
-  $('uvBtn').disabled=$('optBtn').disabled=$('reportBtn').disabled=false;
-  setProgress(12);status('Модель прочитана. Можно создать UV-развёртку или сжать файл.','ok');
- }catch(err){console.error(err);status('Не удалось прочитать GLB: '+(err?.message||err),'error');setProgress(0);}
+  const [t,ctrl,loader,exp]=await Promise.all([import('https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js'),import('https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/controls/OrbitControls.js'),import('https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/loaders/GLTFLoader.js'),import('https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/exporters/GLTFExporter.js')]);
+  THREE=t;OrbitControls=ctrl.OrbitControls;GLTFLoader=loader.GLTFLoader;GLTFExporter=exp.GLTFExporter;setupView();sourceName=file.name.replace(/\.glb$/i,'');
+  status('Читаю геометрию GLB…');const buffer=await file.arrayBuffer();const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
+  root=gltf.scene;scene.add(root);meshes=[];let vertices=0;
+  root.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position){meshes.push(o);vertices+=o.geometry.attributes.position.count;o.userData.m94Role='body'}});
+  if(!meshes.length)throw new Error('В GLB не найдены mesh-объекты с геометрией.');
+  const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());root.position.sub(center);const span=Math.max(size.x,size.y,size.z)||1;camera.position.set(span*1.5,span,span*1.7);controls.target.set(0,0,0);camera.near=span/1000;camera.far=span*100;camera.updateProjectionMatrix();controls.update();
+  $('size').textContent=fmt(file.size);$('meshes').textContent=meshes.length;$('vertices').textContent=vertices.toLocaleString('ru-RU');refreshList();selectMesh(0);
+  ['reset','report','makeUv','compress'].forEach(id=>$(id).disabled=false);$('texture').disabled=false;$('applyRole').disabled=false;
+  progress(100);status('Готово: модель загружена и отображается. Выбери объект справа.','ok');
+ }catch(err){console.error(err);status('Не удалось загрузить модель: '+(err?.message||String(err)),'error');progress(0)}
+ finally{$('file').disabled=false}
 });
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-$('uvBtn').addEventListener('click',async()=>{
- if(!sourceScene)return;
- $('uvBtn').disabled=true;uvFiles=[];setProgress(14);status('Загружаю UV-движок xatlas…');
+$('reset').addEventListener('click',()=>{if(!root)return;const box=new THREE.Box3().setFromObject(root),s=box.getSize(new THREE.Vector3()),span=Math.max(s.x,s.y,s.z)||1;camera.position.set(span*1.5,span,span*1.7);controls.target.set(0,0,0);controls.update()});
+$('report').addEventListener('click',()=>{const rows=['BMW TEXTURE LAB REPORT','File: '+sourceName,'Meshes: '+meshes.length,''];meshes.forEach((m,i)=>rows.push((i+1)+'. '+(m.name||'Mesh '+(i+1))+' | vertices '+m.geometry.attributes.position.count+' | UV '+!!m.geometry.attributes.uv+' | role '+m.userData.m94Role));save(new Blob([rows.join('\n')],{type:'text/plain'}),sourceName+'_report.txt')});
+$('makeUv').addEventListener('click',async()=>{
+ if(!selected)return;$('makeUv').disabled=true;uvBlob=null;progress(5);status('Загружаю UV-развёртку xatlas…');
  try{
-  if(!xatlasModule){const mod=await import('https://esm.sh/xatlas-wasm@0.1.3');const createXAtlas=mod.default||mod.createXAtlas;if(!createXAtlas)throw new Error('В библиотеке xatlas не найдена функция инициализации');xatlasModule=await createXAtlas();}
-  const meshes=[];sourceScene.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position)meshes.push(o);});
-  const lines=['UV GENERATION REPORT',''];
-  for(let mi=0;mi<meshes.length;mi++){
-   const obj=meshes[mi],g=obj.geometry,pos=g.attributes.position;
-   const indices=g.index?new Uint32Array(g.index.array):Uint32Array.from({length:pos.count},(_,i)=>i);
-   if(indices.length%3!==0){lines.push(obj.name+': skipped — not triangles');continue;}
-   const atlas=xatlasModule.createAtlas();
-   const err=atlas.addMesh({positions:new Float32Array(pos.array),indices});
-   if(err!==xatlasModule.AddMeshError.Success){atlas.destroy();lines.push((obj.name||'Mesh '+mi)+': ERROR '+xatlasModule.addMeshErrorString(err));continue;}
-   atlas.generate({maxIterations:2},{resolution:1024,padding:4});
-   const out=atlas.getMesh(0),newPos=new Float32Array(out.vertexCount*3),newNorm=g.attributes.normal?new Float32Array(out.vertexCount*3):null,newUv=new Float32Array(out.vertexCount*2);
-   for(let i=0;i<out.vertexCount;i++){
-    const ref=out.vertices[i].xref;
-    newPos.set([pos.getX(ref),pos.getY(ref),pos.getZ(ref)],i*3);
-    if(newNorm&&g.attributes.normal)newNorm.set([g.attributes.normal.getX(ref),g.attributes.normal.getY(ref),g.attributes.normal.getZ(ref)],i*3);
-    newUv[i*2]=out.vertices[i].uv[0]/atlas.width;newUv[i*2+1]=out.vertices[i].uv[1]/atlas.height;
-   }
-   const ng=new THREE.BufferGeometry();ng.setAttribute('position',new THREE.BufferAttribute(newPos,3));
-   if(newNorm)ng.setAttribute('normal',new THREE.BufferAttribute(newNorm,3));else ng.computeVertexNormals();
-   ng.setAttribute('uv',new THREE.BufferAttribute(newUv,2));ng.setIndex(new THREE.BufferAttribute(new Uint32Array(out.indices),1));
-   const old=g;obj.geometry=ng;old.dispose();
-   const canvas=document.createElement('canvas');canvas.width=atlas.width;canvas.height=atlas.height;
-   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#202830';ctx.lineWidth=1;
-   ctx.beginPath();for(let i=0;i+2<out.indices.length;i+=3){const a=out.indices[i],b=out.indices[i+1],c=out.indices[i+2];ctx.moveTo(newUv[a*2]*canvas.width,(1-newUv[a*2+1])*canvas.height);ctx.lineTo(newUv[b*2]*canvas.width,(1-newUv[b*2+1])*canvas.height);ctx.lineTo(newUv[c*2]*canvas.width,(1-newUv[c*2+1])*canvas.height);ctx.closePath();}ctx.stroke();
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-   uvFiles.push({name:'UV_'+safeName(obj.name||('mesh_'+(mi+1)))+'.png',blob});
-   lines.push((obj.name||'Mesh '+(mi+1))+': OK | vertices '+out.vertexCount+' | charts '+out.chartCount);
-   atlas.destroy();setProgress(14+Math.round((mi+1)/meshes.length*70));
-   status('Создаю UV: '+(mi+1)+' / '+meshes.length);
-  }
-  reportText+='\n\n'+lines.join('\n');
-  $('downloadUv').disabled=uvFiles.length===0;
-  status('UV готовы: '+uvFiles.length+' карт. Теперь можно экспортировать модель и скачать PNG.','ok');
-  setProgress(88);
- }catch(err){console.error(err);status('Ошибка генерации UV: '+(err?.message||err),'error');}
- finally{$('uvBtn').disabled=false;}
+  if(!atlasLib){const mod=await import('https://esm.sh/xatlas-wasm@0.1.3');atlasLib=await (mod.default||mod.createXAtlas)()}
+  const g=selected.geometry,pos=g.attributes.position;if(!pos)throw new Error('У выбранного объекта нет координат вершин.');
+  const idx=g.index?new Uint32Array(g.index.array):Uint32Array.from({length:pos.count},(_,i)=>i);
+  if(idx.length%3)throw new Error('Сетка не состоит из треугольников.');
+  const positions=new Float32Array(pos.count*3);for(let i=0;i<pos.count;i++)positions.set([pos.getX(i),pos.getY(i),pos.getZ(i)],i*3);
+  const atlas=atlasLib.createAtlas();const err=atlas.addMesh({positions,indices:idx});if(err!==atlasLib.AddMeshError.Success)throw new Error(atlasLib.addMeshErrorString(err));
+  atlas.generate({maxIterations:2},{resolution:1024,padding:4});const out=atlas.getMesh(0),newG=new THREE.BufferGeometry();
+  const attrs={};for(const [name,a] of Object.entries(g.attributes)){const arr=new a.array.constructor(out.vertexCount*a.itemSize);for(let i=0;i<out.vertexCount;i++){const ref=out.vertices[i].xref;for(let c=0;c<a.itemSize;c++)arr[i*a.itemSize+c]=a.array[ref*a.itemSize+c]}attrs[name]=new THREE.BufferAttribute(arr,a.itemSize,a.normalized)}
+  const uv=new Float32Array(out.vertexCount*2);for(let i=0;i<out.vertexCount;i++){uv[i*2]=out.vertices[i].uv[0]/atlas.width;uv[i*2+1]=out.vertices[i].uv[1]/atlas.height}
+  for(const [name,a] of Object.entries(attrs))newG.setAttribute(name,a);newG.setAttribute('uv',new THREE.BufferAttribute(uv,2));newG.setIndex(new THREE.BufferAttribute(new Uint32Array(out.indices),1));
+  for(const gr of g.groups)newG.addGroup(gr.start,gr.count,gr.materialIndex);selected.geometry=newG;g.dispose();
+  const c=document.createElement('canvas');c.width=atlas.width;c.height=atlas.height;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle='#111';ctx.lineWidth=1;ctx.beginPath();
+  for(let i=0;i+2<out.indices.length;i+=3){const a=out.indices[i],b=out.indices[i+1],d=out.indices[i+2];ctx.moveTo(uv[a*2]*c.width,(1-uv[a*2+1])*c.height);ctx.lineTo(uv[b*2]*c.width,(1-uv[b*2+1])*c.height);ctx.lineTo(uv[d*2]*c.width,(1-uv[d*2+1])*c.height);ctx.closePath()}ctx.stroke();
+  uvBlob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));atlas.destroy();$('uvPng').disabled=false;$('texture').disabled=false;progress(100);status('UV созданы для «'+(selected.name||'выбранной детали')+'». Скачай PNG-шаблон, раскрась его и загрузи обратно.','ok');refreshList();selectMesh(Number($('part').value));
+ }catch(err){console.error(err);status('Не удалось создать UV: '+(err?.message||String(err)),'error');progress(0)}
+ finally{$('makeUv').disabled=false}
 });
-function safeName(s){return String(s).replace(/[^a-z0-9_-]+/gi,'_').slice(0,60)||'mesh';}
-function exportScene(scene){return new Promise((resolve,reject)=>new GLTFExporter().parse(scene,result=>{try{resolve(new Uint8Array(result));}catch(e){reject(e);}},reject,{binary:true,onlyVisible:true}));}
-$('optBtn').addEventListener('click',async()=>{
- if(!sourceScene||!sourceFile)return;
- $('optBtn').disabled=true;setProgress(10);status('Подготавливаю GLB для сжатия…');
+$('uvPng').addEventListener('click',()=>{if(uvBlob)save(uvBlob,sourceName+'_'+(selected?.name||'mesh')+'_UV.png')});
+$('texture').addEventListener('change',e=>{textureFile=e.target.files?.[0]||null;if(textureFile)status('Текстура выбрана: '+textureFile.name+'. Нажми «Применить к группе».')});
+$('applyRole').addEventListener('click',async()=>{if(!textureFile||!selected)return;try{const url=URL.createObjectURL(textureFile),img=new Image();img.onload=()=>{const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.flipY=false;tex.needsUpdate=true;const role=selected.userData.m94Role;let count=0;meshes.forEach(m=>{if(m.userData.m94Role!==role||!m.geometry.attributes.uv)return;const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mat=>{if(mat){mat.map=tex;mat.color?.set(0xffffff);mat.needsUpdate=true}});count++});URL.revokeObjectURL(url);status('Текстура применена к '+count+' объектам группы «'+role+'» с UV.','ok')};img.onerror=()=>{URL.revokeObjectURL(url);status('Не удалось прочитать изображение.','error')};img.src=url}catch(err){status('Ошибка текстуры: '+err.message,'error')}});
+function save(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+$('compress').addEventListener('click',async()=>{
+ if(!root)return;$('compress').disabled=true;progress(5);status('Экспортирую сцену для оптимизации…');
  try{
-  const [{WebIO},{ALL_EXTENSIONS},{prune,dedup,quantize,meshopt},{MeshoptEncoder,MeshoptDecoder}]=await Promise.all([
-   import('https://esm.sh/@gltf-transform/core@4.2.1'),
-   import('https://esm.sh/@gltf-transform/extensions@4.2.1'),
-   import('https://esm.sh/@gltf-transform/functions@4.2.1'),
-   import('https://esm.sh/meshoptimizer@1.0.1')
-  ]);
-  await MeshoptEncoder.ready;await MeshoptDecoder.ready;
-  const raw=await exportScene(sourceScene);setProgress(30);
-  const io=new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});
-  const doc=await io.readBinary(raw);status('Оптимизирую геометрию…');setProgress(48);
-  await doc.transform(prune(),dedup(),quantize(),meshopt({encoder:MeshoptEncoder,level:'medium'}));
-  setProgress(78);status('Собираю итоговый GLB…');
-  const out=await io.writeBinary(doc);processedBlob=new Blob([out],{type:'model/gltf-binary'});
-  $('downloadGlb').disabled=false;
-  const delta=100*(1-processedBlob.size/sourceFile.size);
-  const target=processedBlob.size<=25*1024*1024?'В пределах лимита GitHub 25 МБ.':'Больше 25 МБ — потребуется дополнительное уменьшение.';
-  $('result').textContent='Исходный: '+sizeText(sourceFile.size)+'\nПосле сжатия: '+sizeText(processedBlob.size)+'\nИзменение: '+(delta>=0?'-':'+')+Math.abs(delta).toFixed(1)+'%\n'+target;
-  status('Сжатие завершено. Проверь модель после экспорта, особенно материалы и внешний вид.','ok');setProgress(100);
- }catch(err){console.error(err);status('Ошибка сжатия: '+(err?.message||err),'error');setProgress(0);}
- finally{$('optBtn').disabled=false;}
+  const raw=await new Promise((resolve,reject)=>new GLTFExporter().parse(root,r=>resolve(new Uint8Array(r)),reject,{binary:true,onlyVisible:true}));progress(25);
+  status('Подключаю Meshoptimizer…');
+  const [core,extensions,functions,meshoptPkg]=await Promise.all([import('https://esm.sh/@gltf-transform/core@4.2.1'),import('https://esm.sh/@gltf-transform/extensions@4.2.1'),import('https://esm.sh/@gltf-transform/functions@4.2.1'),import('https://esm.sh/meshoptimizer@1.0.1')]);
+  const {WebIO}=core,{ALL_EXTENSIONS}=extensions,{prune,dedup,meshopt}=functions,{MeshoptEncoder}=meshoptPkg;await MeshoptEncoder.ready;
+  const io=new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder});
+  const doc=await io.readBinary(raw);progress(45);status('Сжимаю геометрию и удаляю лишние данные…');
+  await doc.transform(prune(),dedup(),meshopt({encoder:MeshoptEncoder,level:'medium'}));progress(80);
+  const bytes=await io.writeBinary(doc);finalBlob=new Blob([bytes],{type:'model/gltf-binary'});$('download').disabled=false;
+  const target=20*1024*1024;$('result').textContent='Итоговый размер: '+fmt(finalBlob.size)+'\nЦель 20 МБ: '+(finalBlob.size<=target?'достигнута':'не достигнута — можно отдельно уменьшить разрешение текстур или плотность сетки')+'\nРазмер проверен после экспорта.';
+  progress(100);status('Оптимизация завершена. Скачай GLB и проверь его в просмотрщике.','ok');
+ }catch(err){console.error(err);status('Ошибка оптимизации: '+(err?.message||String(err)),'error');progress(0)}
+ finally{$('compress').disabled=false}
 });
-$('reportBtn').addEventListener('click',()=>download(new Blob([reportText],{type:'text/plain;charset=utf-8'}),'GLB_LAB_report.txt'));
-$('downloadGlb').addEventListener('click',()=>{if(processedBlob)download(processedBlob,'BMW_optimized.glb');});
-$('downloadUv').addEventListener('click',()=>{for(const f of uvFiles)download(f.blob,f.name);});
-function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-</script>
-</body>
-</html>
+$('download').addEventListener('click',()=>{if(finalBlob)save(finalBlob,sourceName+'_textured_optimized.glb')});
+</script></body></html>
