@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111820">
+<title>BMW E30 — M94</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111820;color:#eef2f5;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+#scene{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
+.panel{position:fixed;left:22px;top:20px;z-index:2;pointer-events:none;text-shadow:0 2px 14px #000}
+.eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#e6b77d}
+h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{font-size:12px;color:#c3ccd5}
+#status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;padding:14px 18px;border:1px solid #ffffff30;border-radius:12px;background:#101820df;backdrop-filter:blur(12px);font-size:13px;text-align:center;max-width:min(88vw,460px);line-height:1.5}
+#status.error{color:#ffd0c7;border-color:#b96b5c}
+#reset{position:fixed;right:18px;bottom:18px;z-index:3;border:1px solid #ffffff45;border-radius:99px;background:#101820cc;color:#fff;padding:11px 16px;font:inherit;font-size:12px;cursor:pointer}
+@media(max-width:600px){.panel{left:15px;top:14px}.hint{max-width:250px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://esm.sh/three@0.160.0","three/addons/":"https://esm.sh/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="scene"></div>
+<header class="panel"><div class="eyebrow">M94 · 3D VIEW</div><h1>BMW E30 Sedan</h1><div class="hint">Перетаскивай мышью — вращение · Колесо — приближение</div></header>
+<div id="status">Загружаю BMW E30 из Dropbox…</div>
+<button id="reset" type="button">Сбросить вид</button>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const host=document.querySelector('#scene');
+const status=document.querySelector('#status');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#aebbc4');
+scene.fog=new THREE.Fog('#aebbc4',35,100);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,1000);
+camera.position.set(7,4.2,8);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+host.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xeaf3ff,0x59616a,2.1));
+const key=new THREE.DirectionalLight(0xffe3c4,3.2);
+key.position.set(-6,12,8);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
+const fill=new THREE.DirectionalLight(0xd2e5ff,1.1);fill.position.set(7,5,-8);scene.add(fill);
+
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#858b8d',roughness:.92}));
+floor.rotation.x=-Math.PI/2;floor.position.y=-.025;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(100,100,'#59636a','#737d82');grid.position.y=-.018;grid.material.opacity=.18;grid.material.transparent=true;scene.add(grid);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.06;controls.target.set(0,1,0);
+controls.minDistance=1;controls.maxDistance=45;controls.maxPolarAngle=Math.PI*.49;
+
+document.querySelector('#reset').addEventListener('click',()=>{
+ camera.position.set(7,4.2,8);controls.target.set(0,1,0);controls.update();
+});
+
+const modelUrl='https://www.dropbox.com/scl/fi/2188qj6popl6xckn1c4x6/bmw_3_series_e30_sedan.glb?rlkey=5k5zx0i3bffgvec9ltjs3dkal&dl=1';
+const loader=new GLTFLoader();
+loader.load(modelUrl,gltf=>{
+ const model=gltf.scene;
+ model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(m.map)m.map.colorSpace=THREE.SRGBColorSpace;});}}});
+ scene.add(model);
+ const bounds=new THREE.Box3().setFromObject(model);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ model.position.sub(center);
+ const span=Math.max(size.x,size.y,size.z);
+ camera.position.set(span*1.35,span*.72,span*1.55);
+ camera.near=Math.max(.01,span/1000);camera.far=span*100;camera.updateProjectionMatrix();
+ controls.target.set(0,size.y*.12,0);
+ controls.minDistance=span*.35;controls.maxDistance=span*8;controls.update();
+ floor.position.y=-size.y*.5;
+ grid.position.y=floor.position.y+.008;
+ key.position.set(-span*.7,span*1.8,span);
+ key.shadow.camera.left=-span;key.shadow.camera.right=span;key.shadow.camera.top=span;key.shadow.camera.bottom=-span;
+ status.style.display='none';
+},xhr=>{
+ if(xhr.total){const p=Math.round(xhr.loaded/xhr.total*100);status.textContent='Загружаю модель… '+p+'%';}
+},err=>{
+ console.error(err);
+ status.classList.add('error');
+ status.textContent='Не удалось загрузить GLB из Dropbox. Возможно, Dropbox блокирует запрос с сайта (CORS). Напиши мне, что показывает эта надпись — подберём другой способ размещения файла.';
+});
+
+function render(){requestAnimationFrame(render);controls.update();renderer.render(scene,camera)}render();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body></html>
