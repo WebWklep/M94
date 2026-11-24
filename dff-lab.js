@@ -134,11 +134,10 @@ $('unlit').addEventListener('click',()=>{
   unlit=!unlit;$('unlit').textContent='UNLIT: '+(unlit?'ON':'OFF');
   model?.traverse(o=>{
     if(!o.isMesh)return;
-    const old=Array.isArray(o.material)?o.material:[o.material];
-    const next=old.map(m=>{
-      const n=unlit?new THREE.MeshBasicMaterial():new THREE.MeshStandardMaterial({roughness:m.roughness??0.8,metalness:m.metalness??0.1});
-      n.copy(m);n.wireframe=wireframe;return n;
-    });
+    if(!o.userData.standardMaterials)o.userData.standardMaterials=(Array.isArray(o.material)?o.material:[o.material]).map(m=>m.clone());
+    const next=unlit
+      ? o.userData.standardMaterials.map(m=>{const n=new THREE.MeshBasicMaterial().copy(m);n.wireframe=wireframe;return n;})
+      : o.userData.standardMaterials.map(m=>{const n=m.clone();n.wireframe=wireframe;return n;});
     o.material=Array.isArray(o.material)?next:next[0];
   });
 });
