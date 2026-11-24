@@ -16,7 +16,7 @@ h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{f
 #reset{position:fixed;right:18px;bottom:18px;z-index:3;border:1px solid #ffffff45;border-radius:99px;background:#101820cc;color:#fff;padding:11px 16px;font:inherit;font-size:12px;cursor:pointer}
 @media(max-width:600px){.panel{left:15px;top:14px}.hint{max-width:250px}}
 </style>
-<script type="importmap">{"imports":{"three":"https://esm.sh/three@0.160.0","three/addons/":"https://esm.sh/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://esm.sh/three@0.180.0","three/addons/":"https://esm.sh/three@0.180.0/examples/jsm/"}}</script>
 </head>
 <body>
 <div id="scene"></div>
@@ -25,7 +25,7 @@ h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{f
 <button id="reset" type="button">Сбросить вид</button>
 <script type="module">
 import * as THREE from 'three';
-import { USDZLoader } from 'three/addons/loaders/USDZLoader.js';
+import { USDLoader } from 'three/addons/loaders/USDLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const host=document.querySelector('#scene');
@@ -65,7 +65,7 @@ document.querySelector('#reset').addEventListener('click',()=>{
 });
 
 const modelUrl='https://raw.githubusercontent.com/WebWklep/M94/main/models/e30/BMW_3_Series_E30_Sedan.usdz';
-const loader=new USDZLoader();
+const loader=new USDLoader();
 loader.load(modelUrl,model=>{
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  scene.add(model);
