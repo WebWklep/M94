@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111820">
+<title>M94 · GLB Lab</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111820;color:#edf2f5;font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:980px;margin:auto;padding:34px 20px 70px}.eyebrow{color:#e6b77d;font-size:11px;letter-spacing:.22em;text-transform:uppercase}h1{font-size:clamp(30px,6vw,54px);line-height:1.02;letter-spacing:-.05em;margin:12px 0}p{color:#aebbc4}.sub{max-width:680px}.panel{margin-top:22px;padding:22px;border:1px solid #ffffff20;border-radius:16px;background:#1a252e}.drop{display:block;border:1px dashed #71808a;border-radius:12px;padding:26px;text-align:center;background:#111a22;cursor:pointer}.drop strong{display:block;font-size:17px;margin-bottom:5px}.drop input{display:none}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:1px solid #ffffff35;border-radius:9px;padding:11px 15px;background:#253440;color:#fff;font:inherit;cursor:pointer}.btn.primary{border-color:#e6b77d;color:#ffe0b8}.btn:disabled{opacity:.4;cursor:not-allowed}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px}.stat{padding:12px;border-radius:10px;background:#111a22}.stat small{display:block;color:#91a0aa}.stat b{font-size:18px}.status{margin-top:14px;padding:12px;border-radius:9px;background:#111a22;color:#c6d1d8;white-space:pre-wrap;overflow-wrap:anywhere}.status.error{color:#ffc4b8}.status.ok{color:#c5e7c8}.note{font-size:12px;color:#91a0aa}.meshlist{margin-top:14px;max-height:240px;overflow:auto;border:1px solid #ffffff18;border-radius:10px}.mesh{display:flex;justify-content:space-between;gap:12px;padding:8px 11px;border-bottom:1px solid #ffffff12;font-size:12px}.mesh:last-child{border:0}.mesh span:last-child{color:#aebbc4;white-space:nowrap}.bar{height:7px;background:#33414b;border-radius:99px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:#e6b77d;transition:width .2s}@media(max-width:600px){.wrap{padding:24px 14px 50px}.panel{padding:16px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="eyebrow">M94 · 3D WORKSHOP</div>
+<h1>GLB Optimizer</h1>
+<p class="sub">Локальная обработка 3D-моделей прямо в браузере. Файл остаётся на твоём устройстве и не загружается на сервер.</p>
+
+<section class="panel">
+<label class="drop" for="file">
+<strong>Выбрать исходный GLB</strong>
+<span>Нажми сюда или перетащи файл · поддерживается .glb</span>
+<input id="file" type="file" accept=".glb,model/gltf-binary">
+</label>
+<div class="stats">
+<div class="stat"><small>Исходный файл</small><b id="beforeSize">—</b></div>
+<div class="stat"><small>Геометрия</small><b id="meshCount">—</b></div>
+<div class="stat"><small>Вершины</small><b id="vertexCount">—</b></div>
+<div class="stat"><small>UV в источнике</small><b id="uvCount">—</b></div>
+</div>
+<div class="meshlist" id="meshList" hidden></div>
+<div class="row">
+<button class="btn primary" id="uvBtn" disabled>Создать UV-развёртку</button>
+<button class="btn" id="optBtn" disabled>Сжать GLB</button>
+<button class="btn" id="reportBtn" disabled>Скачать отчёт</button>
+</div>
+<div class="bar"><i id="progress"></i></div>
+<div class="status" id="status">Сначала выбери исходный GLB.</div>
+<p class="note">UV создаются отдельно для каждого объекта-сетки. Если колёса в исходной модели являются отдельными объектами, их UV можно будет отличить в отчёте. Если кузов и колёса объединены в одну сетку, сначала потребуется разделить их.</p>
+</section>
+
+<section class="panel">
+<div class="eyebrow">EXPORT</div>
+<h2>Скачать результат</h2>
+<p>После обработки появятся отдельные файлы модели и UV-карт.</p>
+<div class="row">
+<button class="btn primary" id="downloadUv" disabled>Скачать UV-карты PNG</button>
+<button class="btn" id="downloadGlb" disabled>Скачать обработанный GLB</button>
+</div>
+<div class="status" id="result">Пока нет готового результата.</div>
+</section>
+<p class="note">Инструменты: Three.js, glTF Transform, Meshoptimizer и xatlas. Экспорт зависит от структуры исходной модели и возможностей браузера. Целевой размер 25 МБ не гарантируется автоматически — итоговый размер будет измерен после сжатия.</p>
+</main>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/exporters/GLTFExporter.js';
+import createXAtlas from 'https://esm.sh/xatlas-wasm@0.1.3';
+import { WebIO } from 'https://esm.sh/@gltf-transform/core@4.2.1';
+import { ALL_EXTENSIONS } from 'https://esm.sh/@gltf-transform/extensions@4.2.1';
+import { prune, dedup, quantize, meshopt } from 'https://esm.sh/@gltf-transform/functions@4.2.1';
+import { MeshoptEncoder, MeshoptDecoder } from 'https://esm.sh/meshoptimizer@1.0.1';
+
+const $ = (id)=>document.getElementById(id);
+let sourceFile=null, sourceScene=null, processedBlob=null, uvFiles=[], reportText='', xatlasModule=null;
+let originalBytes=0, totalVertices=0, totalMeshes=0, uvMeshes=0;
+const status=(s,kind='')=>{$('status').textContent=s;$('status').className='status '+kind;};
+const sizeText=n=>n<1024*1024?(n/1024).toFixed(1)+' KB':(n/1024/1024).toFixed(2)+' MB';
+const setProgress=n=>$('progress').style.width=Math.max(0,Math.min(100,n))+'%';
+
+$('file').addEventListener('change',async e=>{
+ const file=e.target.files?.[0]; if(!file)return;
+ sourceFile=file;sourceScene=null;processedBlob=null;uvFiles=[];reportText='';originalBytes=file.size;
+ $('beforeSize').textContent=sizeText(file.size);$('meshCount').textContent='…';$('vertexCount').textContent='…';$('uvCount').textContent='…';
+ $('uvBtn').disabled=$('optBtn').disabled=$('reportBtn').disabled=true;
+ $('downloadUv').disabled=$('downloadGlb').disabled=true;$('result').textContent='Пока нет готового результата.';
+ $('meshList').hidden=true;setProgress(4);status('Читаю GLB…');
+ try{
+  const buffer=await file.arrayBuffer();
+  const loader=new GLTFLoader();
+  const gltf=await new Promise((resolve,reject)=>loader.parse(buffer,'',resolve,reject));
+  sourceScene=gltf.scene;const rows=[];totalVertices=0;totalMeshes=0;uvMeshes=0;
+  sourceScene.traverse(o=>{
+   if(!o.isMesh||!o.geometry?.attributes?.position)return;
+   totalMeshes++;const n=o.geometry.attributes.position.count;totalVertices+=n;
+   const hasUV=!!o.geometry.attributes.uv;if(hasUV)uvMeshes++;
+   rows.push({name:o.name||('Mesh '+totalMeshes),vertices:n,uv:hasUV?'есть':'нет'});
+  });
+  $('meshCount').textContent=String(totalMeshes);$('vertexCount').textContent=totalVertices.toLocaleString('ru-RU');$('uvCount').textContent=uvMeshes+' / '+totalMeshes;
+  $('meshList').innerHTML=rows.map((r,i)=>'<div class="mesh"><span>'+String(i+1)+'. '+escapeHtml(r.name)+'</span><span>'+r.vertices.toLocaleString('ru-RU')+' · UV: '+r.uv+'</span></div>').join('');
+  $('meshList').hidden=false;
+  reportText=['GLB LAB REPORT','File: '+file.name,'Size: '+file.size+' bytes','Meshes: '+totalMeshes,'Vertices: '+totalVertices,'Meshes with UV0: '+uvMeshes,'','Objects:',...rows.map((r,i)=>(i+1)+'. '+r.name+' | vertices '+r.vertices+' | UV0 '+r.uv)].join('\n');
+  $('uvBtn').disabled=$('optBtn').disabled=$('reportBtn').disabled=false;
+  setProgress(12);status('Модель прочитана. Можно создать UV-развёртку или сжать файл.','ok');
+ }catch(err){console.error(err);status('Не удалось прочитать GLB: '+(err?.message||err),'error');setProgress(0);}
+});
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+$('uvBtn').addEventListener('click',async()=>{
+ if(!sourceScene)return;
+ $('uvBtn').disabled=true;uvFiles=[];setProgress(14);status('Загружаю UV-движок xatlas…');
+ try{
+  if(!xatlasModule)xatlasModule=await createXAtlas();
+  const meshes=[];sourceScene.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position)meshes.push(o);});
+  const lines=['UV GENERATION REPORT',''];
+  for(let mi=0;mi<meshes.length;mi++){
+   const obj=meshes[mi],g=obj.geometry,pos=g.attributes.position;
+   const indices=g.index?new Uint32Array(g.index.array):Uint32Array.from({length:pos.count},(_,i)=>i);
+   if(indices.length%3!==0){lines.push(obj.name+': skipped — not triangles');continue;}
+   const atlas=xatlasModule.createAtlas();
+   const err=atlas.addMesh({positions:new Float32Array(pos.array),indices});
+   if(err!==xatlasModule.AddMeshError.Success){atlas.destroy();lines.push((obj.name||'Mesh '+mi)+': ERROR '+xatlasModule.addMeshErrorString(err));continue;}
+   atlas.generate({maxIterations:2},{resolution:1024,padding:4});
+   const out=atlas.getMesh(0),newPos=new Float32Array(out.vertexCount*3),newNorm=g.attributes.normal?new Float32Array(out.vertexCount*3):null,newUv=new Float32Array(out.vertexCount*2);
+   for(let i=0;i<out.vertexCount;i++){
+    const ref=out.vertices[i].xref;
+    newPos.set([pos.getX(ref),pos.getY(ref),pos.getZ(ref)],i*3);
+    if(newNorm&&g.attributes.normal)newNorm.set([g.attributes.normal.getX(ref),g.attributes.normal.getY(ref),g.attributes.normal.getZ(ref)],i*3);
+    newUv[i*2]=out.vertices[i].uv[0]/atlas.width;newUv[i*2+1]=out.vertices[i].uv[1]/atlas.height;
+   }
+   const ng=new THREE.BufferGeometry();ng.setAttribute('position',new THREE.BufferAttribute(newPos,3));
+   if(newNorm)ng.setAttribute('normal',new THREE.BufferAttribute(newNorm,3));else ng.computeVertexNormals();
+   ng.setAttribute('uv',new THREE.BufferAttribute(newUv,2));ng.setIndex(new THREE.BufferAttribute(new Uint32Array(out.indices),1));
+   const old=g;obj.geometry=ng;old.dispose();
+   const canvas=document.createElement('canvas');canvas.width=atlas.width;canvas.height=atlas.height;
+   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#202830';ctx.lineWidth=1;
+   ctx.beginPath();for(let i=0;i+2<out.indices.length;i+=3){const a=out.indices[i],b=out.indices[i+1],c=out.indices[i+2];ctx.moveTo(newUv[a*2]*canvas.width,(1-newUv[a*2+1])*canvas.height);ctx.lineTo(newUv[b*2]*canvas.width,(1-newUv[b*2+1])*canvas.height);ctx.lineTo(newUv[c*2]*canvas.width,(1-newUv[c*2+1])*canvas.height);ctx.closePath();}ctx.stroke();
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+   uvFiles.push({name:'UV_'+safeName(obj.name||('mesh_'+(mi+1)))+'.png',blob});
+   lines.push((obj.name||'Mesh '+(mi+1))+': OK | vertices '+out.vertexCount+' | charts '+out.chartCount);
+   atlas.destroy();setProgress(14+Math.round((mi+1)/meshes.length*70));
+   status('Создаю UV: '+(mi+1)+' / '+meshes.length);
+  }
+  reportText+='\n\n'+lines.join('\n');
+  $('downloadUv').disabled=uvFiles.length===0;
+  status('UV готовы: '+uvFiles.length+' карт. Теперь можно экспортировать модель и скачать PNG.','ok');
+  setProgress(88);
+ }catch(err){console.error(err);status('Ошибка генерации UV: '+(err?.message||err),'error');}
+ finally{$('uvBtn').disabled=false;}
+});
+function safeName(s){return String(s).replace(/[^a-z0-9_-]+/gi,'_').slice(0,60)||'mesh';}
+function exportScene(scene){return new Promise((resolve,reject)=>new GLTFExporter().parse(scene,result=>{try{resolve(new Uint8Array(result));}catch(e){reject(e);}},reject,{binary:true,onlyVisible:true}));}
+$('optBtn').addEventListener('click',async()=>{
+ if(!sourceScene||!sourceFile)return;
+ $('optBtn').disabled=true;setProgress(10);status('Подготавливаю GLB для сжатия…');
+ try{
+  await MeshoptEncoder.ready;await MeshoptDecoder.ready;
+  const raw=await exportScene(sourceScene);setProgress(30);
+  const io=new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});
+  const doc=await io.readBinary(raw);status('Оптимизирую геометрию…');setProgress(48);
+  await doc.transform(prune(),dedup(),quantize(),meshopt({encoder:MeshoptEncoder,level:'medium'}));
+  setProgress(78);status('Собираю итоговый GLB…');
+  const out=await io.writeBinary(doc);processedBlob=new Blob([out],{type:'model/gltf-binary'});
+  $('downloadGlb').disabled=false;
+  const delta=100*(1-processedBlob.size/sourceFile.size);
+  const target=processedBlob.size<=25*1024*1024?'В пределах лимита GitHub 25 МБ.':'Больше 25 МБ — потребуется дополнительное уменьшение.';
+  $('result').textContent='Исходный: '+sizeText(sourceFile.size)+'\nПосле сжатия: '+sizeText(processedBlob.size)+'\nИзменение: '+(delta>=0?'-':'+')+Math.abs(delta).toFixed(1)+'%\n'+target;
+  status('Сжатие завершено. Проверь модель после экспорта, особенно материалы и внешний вид.','ok');setProgress(100);
+ }catch(err){console.error(err);status('Ошибка сжатия: '+(err?.message||err),'error');setProgress(0);}
+ finally{$('optBtn').disabled=false;}
+});
+$('reportBtn').addEventListener('click',()=>download(new Blob([reportText],{type:'text/plain;charset=utf-8'}),'GLB_LAB_report.txt'));
+$('downloadGlb').addEventListener('click',()=>{if(processedBlob)download(processedBlob,'BMW_optimized.glb');});
+$('downloadUv').addEventListener('click',()=>{for(const f of uvFiles)download(f.blob,f.name);});
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
+</script>
+</body>
+</html>
