@@ -86,5 +86,29 @@ window.addEventListener("unhandledrejection", function(e) {
  </aside>
 </main>
 </div>
-<script type="module" src="./main.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const p = document.createElement("div");
+  p.id = "m94-boot-status";
+  p.textContent = "M94: запускаю 3D-редактор…";
+  p.style.cssText = "position:fixed;z-index:99998;left:12px;bottom:12px;padding:8px 11px;background:#202328;color:#fff;border:1px solid #e7a45e;font:11px monospace";
+  document.body.appendChild(p);
+});
+</script>
+<script type="module">
+const status = document.getElementById("m94-boot-status");
+import("./main.js?build=4d8a7d5").then(() => {
+  if (status) status.remove();
+}).catch((err) => {
+  let p = document.getElementById("m94-error");
+  if (!p) {
+    p = document.createElement("pre");
+    p.id = "m94-error";
+    p.style.cssText = "position:fixed;z-index:99999;left:12px;right:12px;bottom:12px;max-height:45vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
+    document.body.appendChild(p);
+  }
+  p.textContent = "M94: ошибка загрузки редактора\\n" + (err && (err.stack || err.message) || String(err));
+  if (status) status.remove();
+});
+</script>
 </body></html>
