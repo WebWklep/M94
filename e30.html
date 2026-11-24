@@ -76,7 +76,24 @@ document.querySelector('#reset').addEventListener('click',()=>{
 const modelUrl='https://raw.githubusercontent.com/WebWklep/M94/main/models/e30/BMW_3_Series_E30_Sedan.usdz';
 const loader=new USDLoader();
 loader.load(modelUrl,model=>{
- model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+ model.traverse(o=>{
+  if(!o.isMesh) return;
+  o.castShadow=true;
+  o.receiveShadow=true;
+  const materials=Array.isArray(o.material)?o.material:[o.material];
+  for(const mat of materials){
+   if(!mat) continue;
+   const isGlass=/glass|window|windshield|windscreen|glazing/i.test(mat.name||'');
+   if(!isGlass){
+    mat.transparent=false;
+    mat.opacity=1;
+    mat.depthWrite=true;
+    if('transmission' in mat) mat.transmission=0;
+    if('alphaTest' in mat) mat.alphaTest=0;
+    mat.needsUpdate=true;
+   }
+  }
+ });
  scene.add(model);
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
