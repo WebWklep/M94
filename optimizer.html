@@ -16,6 +16,7 @@
 <div class="field"><label for="bodyColor">Цвет кузова</label><div class="actions" style="align-items:center"><input id="bodyColor" type="color" value="#245b91" disabled style="width:58px;height:38px;padding:2px;background:#253440;border:1px solid #ffffff35;border-radius:8px"><button class="btn" id="paintBody" disabled>Покрасить группу «Кузов»</button></div><small class="muted">Назначь нужным деталям группу «Кузов» в списке справа. UV не нужны.</small></div>
 <div class="field"><label for="plateImage">Номерной знак (PNG / JPG)</label><input id="plateImage" type="file" accept="image/png,image/jpeg" disabled><small class="muted">Загрузи изображение, нажми «Поставить номер», затем кликни по месту номера на машине.</small><div class="actions"><button class="btn" id="placePlate" disabled>Поставить номер: кликни по машине</button><button class="btn" id="removePlate" disabled>Убрать последний номер</button></div><label for="plateWidth">Ширина накладки</label><input id="plateWidth" type="range" min="0.25" max="1.5" step="0.05" value="0.8" disabled></div>
 <div class="actions"><button class="btn primary" id="makeUv" disabled>Создать UV выбранной детали</button><button class="btn" id="uvPng" disabled>Скачать UV PNG</button><button class="btn" id="makeAllUv" disabled>Единая UV всей модели</button><button class="btn" id="allUvPng" disabled>Скачать общую UV</button></div><div class="uv-preview"><div class="uv-preview-head"><b>UV предпросмотр</b><small class="muted" id="uvLabel">Деталь не выбрана</small></div><div id="uvPreview" class="uv-empty">После создания UV здесь появится миниатюра развёртки именно выбранного объекта.</div></div>
+<div class="field"><label for="materialPreset">Материал выбранной детали</label><select id="materialPreset" disabled><option value="transparent">Прозрачный материал / стекло</option><option value="soft">Soft Plastic — матовый пластик</option><option value="chrome">Chrome — хром</option></select><label for="materialColor">Цвет материала</label><input id="materialColor" type="color" value="#b8c4cc" disabled style="width:58px;height:38px;padding:2px;background:#253440;border:1px solid #ffffff35;border-radius:8px"><label for="materialOpacity">Прозрачность</label><input id="materialOpacity" type="range" min="0.08" max="1" step="0.02" value="0.32" disabled><div class="actions"><button class="btn primary" id="applyMaterial" disabled>Применить к выбранной детали</button><button class="btn" id="applyMaterialRole" disabled>Применить ко всей группе</button></div><small class="muted">Хром лучше выглядит при наличии окружения и отражений. В текущем просмотрщике он будет использовать физический металлический материал и освещение сцены.</small></div>
 <div class="field"><label for="texture">Твоя текстура JPG / PNG</label><input id="texture" type="file" accept="image/png,image/jpeg" disabled></div>
 <div class="actions"><button class="btn" id="applyRole" disabled>Применить к группе</button></div>
 <div class="meshlist" id="meshlist"></div></section></div>
@@ -75,7 +76,7 @@ $('file').addEventListener('change',async e=>{
   if(!meshes.length)throw new Error('В GLB не найдены mesh-объекты с геометрией.');
   const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());root.position.sub(center);const span=Math.max(size.x,size.y,size.z)||1;camera.position.set(span*1.5,span,span*1.7);controls.target.set(0,0,0);camera.near=span/1000;camera.far=span*100;camera.updateProjectionMatrix();controls.update();
   $('size').textContent=fmt(file.size);$('meshes').textContent=meshes.length;$('vertices').textContent=vertices.toLocaleString('ru-RU');refreshList();selectMesh(0);
-  ['reset','report','makeUv','makeAllUv','compress','paintBody','bodyColor','plateImage','placePlate','plateWidth','simplifyRatio'].forEach(id=>$(id).disabled=false);$('texture').disabled=false;$('applyRole').disabled=false;
+  ['reset','report','makeUv','makeAllUv','compress','paintBody','bodyColor','plateImage','placePlate','plateWidth','simplifyRatio','materialPreset','materialColor','materialOpacity','applyMaterial','applyMaterialRole'].forEach(id=>$(id).disabled=false);$('texture').disabled=false;$('applyRole').disabled=false;
   progress(100);status('Готово: модель загружена и отображается. Выбери объект справа.','ok');
  }catch(err){console.error(err);status('Не удалось загрузить модель: '+(err?.message||String(err)),'error');progress(0)}
  finally{$('file').disabled=false}
@@ -132,6 +133,26 @@ $('makeAllUv').addEventListener('click',async()=>{
 });
 $('uvPng').addEventListener('click',()=>{const blob=selected?.userData.m94UvBlob;if(blob)save(blob,sourceName+'_'+(selected.name||'mesh')+'_UV.png');else status('У выбранной детали ещё нет UV. Сначала создай развёртку.','error')});
 $('allUvPng').addEventListener('click',()=>{if(allUvBlob)save(allUvBlob,sourceName+'_ALL_PARTS_UV_ATLAS.png');else status('Общая UV ещё не создана.','error')});
+function buildPresetMaterial(preset,color,opacity){
+ const c=new THREE.Color(color);
+ if(preset==='transparent')return new THREE.MeshPhysicalMaterial({color:c,metalness:0,roughness:.08,transparent:true,opacity,transmission:.72,thickness:.18,ior:1.46,depthWrite:false,side:THREE.DoubleSide});
+ if(preset==='soft')return new THREE.MeshPhysicalMaterial({color:c,metalness:0,roughness:.82,clearcoat:.08,clearcoatRoughness:.9});
+ return new THREE.MeshPhysicalMaterial({color:c,metalness:1,roughness:.075,clearcoat:1,clearcoatRoughness:.06,envMapIntensity:1.8});
+}
+function assignPreset(mesh){
+ const preset=$('materialPreset').value,color=$('materialColor').value,opacity=Number($('materialOpacity').value);
+ const old=Array.isArray(mesh.material)?mesh.material:[mesh.material],next=old.map(()=>buildPresetMaterial(preset,color,opacity));
+ mesh.material=Array.isArray(mesh.material)?next:next[0];old.forEach(m=>m?.dispose?.());
+}
+$('applyMaterial').addEventListener('click',()=>{
+ if(!selected)return;assignPreset(selected);status('Материал применён к выбранной детали: '+$('materialPreset').selectedOptions[0].text+'.','ok');
+});
+$('applyMaterialRole').addEventListener('click',()=>{
+ if(!selected)return;const role=selected.userData.m94Role;let count=0;
+ meshes.forEach(m=>{if(m.userData.m94Role===role){assignPreset(m);count++}});
+ status('Материал применён к '+count+' деталям группы «'+role+'».','ok');
+});
+$('materialPreset').addEventListener('change',()=>{const glass=$('materialPreset').value==='transparent';$('materialOpacity').disabled=!glass;$('materialOpacity').style.opacity=glass?'1':'.45'});
 $('paintBody').addEventListener('click',()=>{
  const color=$('bodyColor').value;let count=0;
  meshes.forEach(m=>{if(m.userData.m94Role!=='body')return;const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mat=>{if(mat&&mat.color){mat.color.set(color);mat.map=null;mat.needsUpdate=true}});count++});
