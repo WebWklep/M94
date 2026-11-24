@@ -9,6 +9,7 @@
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111820;color:#eef2f5;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 #scene{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
 .panel{position:fixed;left:22px;top:20px;z-index:2;pointer-events:none;text-shadow:0 2px 14px #000}
+.tools{position:fixed;right:18px;top:18px;z-index:4;display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end;max-width:min(520px,65vw)}.tools button,.tools label{border:1px solid #ffffff45;border-radius:9px;background:#101820df;color:#fff;padding:9px 11px;font:inherit;font-size:11px;cursor:pointer;backdrop-filter:blur(10px)}.tools input{display:none}.tools button:hover,.tools label:hover{background:#293b49}.tools .save{border-color:#e6b77d;color:#ffe0b8}@media(max-width:700px){.tools{left:12px;right:12px;top:auto;bottom:62px;justify-content:center}.tools button,.tools label{font-size:10px;padding:8px}}
 .eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#e6b77d}
 h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{font-size:12px;color:#c3ccd5}
 #status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;padding:14px 18px;border:1px solid #ffffff30;border-radius:12px;background:#101820df;backdrop-filter:blur(12px);font-size:13px;text-align:center;max-width:min(88vw,460px);line-height:1.5}
@@ -22,7 +23,7 @@ h1{font-size:clamp(22px,4vw,38px);letter-spacing:-.04em;margin:7px 0 4px}.hint{f
 <div id="scene"></div>
 <header class="panel"><div class="eyebrow">M94 · 3D VIEW</div><h1>BMW E30 Sedan</h1><div class="hint">Перетаскивай мышью — вращение · Колесо — приближение</div></header>
 <div id="status">Загружаю BMW E30 с GitHub…</div>
-<button id="reset" type="button">Сбросить вид</button>
+<div class="tools"><button id="uvBody" type="button">UV кузова PNG</button><button id="uvWheels" type="button">UV колёс PNG</button><label>Текстура кузова<input id="bodyTexture" type="file" accept="image/png,image/jpeg"></label><label>Текстура колёс<input id="wheelTexture" type="file" accept="image/png,image/jpeg"></label><button id="saveModel" class="save" type="button">Сохранить BMW GLB</button></div><button id="reset" type="button">Сбросить вид</button>
 <script type="module">
 const status=document.querySelector('#status');
 let THREE, USDLoader, OrbitControls;
@@ -67,6 +68,7 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.06;controls.target.set(0,1,0);
 controls.minDistance=1;controls.maxDistance=45;controls.maxPolarAngle=Math.PI*.49;
 
+let loadedModel=null;
 let initialCamera=new THREE.Vector3(7,4.2,8);
 let initialTarget=new THREE.Vector3(0,1,0);
 document.querySelector('#reset').addEventListener('click',()=>{
@@ -76,6 +78,7 @@ document.querySelector('#reset').addEventListener('click',()=>{
 const modelUrl='https://raw.githubusercontent.com/WebWklep/M94/main/models/e30/BMW_3_Series_E30_Sedan.usdz';
 const loader=new USDLoader();
 loader.load(modelUrl,model=>{
+ loadedModel=model;
  model.traverse(o=>{
   if(!o.isMesh) return;
   o.castShadow=true;
@@ -118,6 +121,13 @@ loader.load(modelUrl,model=>{
  status.classList.add('error');
  status.textContent='Ошибка загрузки USDZ: '+(err?.message || String(err));
 });
+
+
+function isWheelObject(o){const s=((o.name||'')+' '+(o.material?.name||'')).toLowerCase();return /wheel|tire|tyre|rim|brake|шина|диск|колес/.test(s);}
+function exportUV(kind){if(!loadedModel){alert('Дождись загрузки машины.');return;}const canvas=document.createElement('canvas');canvas.width=4096;canvas.height=4096;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,4096,4096);ctx.strokeStyle='#252b31';ctx.lineWidth=2;let count=0;loadedModel.updateMatrixWorld(true);loadedModel.traverse(o=>{if(!o.isMesh||!o.geometry?.attributes?.uv)return;const wheel=isWheelObject(o);if((kind==='wheels'&&!wheel)||(kind==='body'&&wheel))return;const g=o.geometry,uv=g.attributes.uv,index=g.index,total=index?index.count:uv.count;ctx.beginPath();for(let i=0;i+2<total;i+=3){const a=index?index.getX(i):i,b=index?index.getX(i+1):i+1,c=index?index.getX(i+2):i+2;const ax=uv.getX(a)*4096,ay=(1-uv.getY(a))*4096,bx=uv.getX(b)*4096,by=(1-uv.getY(b))*4096,cx=uv.getX(c)*4096,cy=(1-uv.getY(c))*4096;ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.lineTo(cx,cy);ctx.closePath();count++;}ctx.stroke();});if(!count){alert('UV-координаты для этой группы не найдены.');return;}const a=document.createElement('a');a.download='BMW_E30_'+(kind==='body'?'BODY':'WHEELS')+'_UV.png';a.href=canvas.toDataURL('image/png');a.click();}
+function applyTexture(file,kind){if(!loadedModel||!file)return;const url=URL.createObjectURL(file),image=new Image();image.onload=()=>{const texture=new THREE.Texture(image);texture.colorSpace=THREE.SRGBColorSpace;texture.flipY=false;texture.needsUpdate=true;loadedModel.traverse(o=>{if(!o.isMesh)return;const wheel=isWheelObject(o);if((kind==='wheels'&&!wheel)||(kind==='body'&&wheel))return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m){m.map=texture;m.color.set(0xffffff);m.needsUpdate=true;}});});URL.revokeObjectURL(url);};image.onerror=()=>{alert('Не удалось прочитать изображение.');URL.revokeObjectURL(url);};image.src=url;}
+document.querySelector('#uvBody').addEventListener('click',()=>exportUV('body'));document.querySelector('#uvWheels').addEventListener('click',()=>exportUV('wheels'));document.querySelector('#bodyTexture').addEventListener('change',e=>applyTexture(e.target.files[0],'body'));document.querySelector('#wheelTexture').addEventListener('change',e=>applyTexture(e.target.files[0],'wheels'));
+document.querySelector('#saveModel').addEventListener('click',async()=>{if(!loadedModel){alert('Дождись загрузки машины.');return;}try{const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');new GLTFExporter().parse(loadedModel,result=>{const blob=new Blob([result],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='My_BMW_E30.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);},error=>alert('Ошибка экспорта: '+(error?.message||String(error))),{binary:true,onlyVisible:true});}catch(error){alert('Экспорт не запустился: '+(error?.message||String(error)));}});
 
 function render(){requestAnimationFrame(render);controls.update();renderer.render(scene,camera)}render();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
