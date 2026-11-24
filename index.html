@@ -1,119 +1,54 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#17191d"><title>M94 — postcard studio</title>
-<link rel="stylesheet" href="./style.css">
-<script type="importmap">{"imports":{"three":"https://raw.githubusercontent.com/mrdoob/three.js/r160/build/three.module.js","three/addons/":"https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/jsm/"}}</script>
-<script>
-window.addEventListener("error", function(e) {
-  let p = document.getElementById("m94-error");
-  if (!p) {
-    p = document.createElement("pre");
-    p.id = "m94-error";
-    p.style.cssText = "position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-height:40vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
-    document.body.appendChild(p);
-  }
-  p.textContent = "M94 startup error:\n" + (e.message || (e.target && (e.target.src || e.target.href)) || "Script load error");
-}, true);
-window.addEventListener("unhandledrejection", function(e) {
-  let p = document.getElementById("m94-error");
-  if (!p) {
-    p = document.createElement("pre");
-    p.id = "m94-error";
-    p.style.cssText = "position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-height:40vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
-    document.body.appendChild(p);
-  }
-  p.textContent = "M94 startup error:\n" + String(e.reason && (e.reason.stack || e.reason.message) || e.reason);
-});
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17191d">
+<title>M94 — Scene Editor</title>
+<link rel="stylesheet" href="./style.css?v=first-clean">
+<script type="importmap">
+{"imports":{
+  "three":"https://esm.sh/three@0.160.0",
+  "three/addons/":"https://esm.sh/three@0.160.0/examples/jsm/"
+}}
 </script>
 </head>
 <body>
-<div id="app">
 <header class="topbar">
- <div class="logo">M94 <span>POSTCARD STUDIO</span></div>
- <div class="top-center"><span class="live-dot"></span><span id="state-label">SCENE EDITOR</span></div>
- <div class="top-actions">
-  <button id="save">Сохранить проект</button><button id="load">Открыть</button><input id="project-file" type="file" accept=".json" hidden>
-  <button id="preview" class="accent">▶ Предпросмотр</button>
- </div>
+  <div class="brand">M94 <span>SCENE EDITOR</span></div>
+  <div class="status"><i></i><span id="status">ГОТОВ К РАБОТЕ</span></div>
+  <div class="actions">
+    <button id="import-model" class="primary">ИМПОРТ МОДЕЛИ GTA</button>
+    <input id="model-file" type="file" accept=".dff,.glb,.gltf" hidden>
+    <button id="focus">ПОКАЗАТЬ СЦЕНУ</button>
+  </div>
 </header>
-<main class="workspace">
- <nav class="tools">
-  <button id="import" class="tool active" title="Добавить машину / модель"><span>＋</span><small>МОДЕЛЬ</small></button>
-  <input id="model-file" type="file" accept=".glb,.gltf,.dff" multiple hidden
-  <input id="texture-file" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden>
-  <input id="txd-file" type="file" accept=".txd" hidden>
-  <button id="add-plane" class="tool" title="Добавить текстурируемую плоскость"><span>▱</span><small>ПЛОСКОСТЬ</small></button>
-  <div class="tool-sep"></div>
-  <button id="add-road" class="tool" title="Добавить дорогу"><span>▤</span><small>ДОРОГА</small></button>
-  <button id="add-ramp" class="tool" title="Добавить трамплин"><span>⌁</span><small>РАМПА</small></button>
-  <button id="add-sign" class="tool" title="Добавить знак"><span>▣</span><small>ЗНАК</small></button>
-  <div class="tool-sep"></div>
-  <button id="focus" class="tool" title="Показать сцену"><span>◎</span><small>ФОКУС</small></button>
- </nav>
- <section id="viewport">
-  <div id="stage"></div>
-  <div class="viewport-tag">3D VIEWPORT <span id="viewport-mode">EDITOR</span></div>
-  <div id="drop-hint" class="drop-hint hidden">ОТПУСТИ GLB ЗДЕСЬ</div>
-  <div id="preview-hint" class="preview-hint hidden">W A S D / СТРЕЛКИ — ЕХАТЬ · ESC — В РЕДАКТОР</div>
-  <div id="preview-title" class="preview-title hidden">DREAM DRIVE</div>
- </section>
- <aside class="inspector">
-  <section class="section">
-   <div class="section-head">СЦЕНА <span id="object-total">0 OBJECTS</span></div>
-   <div id="object-list" class="object-list"></div>
+<main>
+  <section id="viewport">
+    <div id="stage"></div>
+    <div class="view-label">3D VIEWPORT <span>EDIT MODE</span></div>
+    <div id="message" class="message">Загрузи DFF-модель GTA кнопкой сверху</div>
+    <div class="controls-hint">ЛКМ — вращение · Колесо — масштаб · ПКМ — панорама</div>
   </section>
-  <section class="section">
-   <div class="section-head">TRANSFORM</div>
-   <div class="mode-switch"><button data-mode="translate" class="selected">MOVE</button><button data-mode="rotate">ROTATE</button><button data-mode="scale">SCALE</button></div>
-   <div class="xyz-grid">
-    <label>X<input id="x" type="number" step=".1"></label><label>Y<input id="y" type="number" step=".1"></label><label>Z<input id="z" type="number" step=".1"></label>
-   </div>
-   <button id="set-car" class="wide">◎ НАЗНАЧИТЬ МАШИНОЙ</button>
-   <button id="apply-texture" class="wide" style="margin-top:6px">▧ НАЗНАЧИТЬ JPEG / PNG</button>
-   <button id="load-txd" class="wide" style="margin-top:6px">ЗАГРУЗИТЬ TXD ТЕКСТУРЫ</button>
-   <button id="remove" class="text-danger">Удалить выбранное</button>
-  </section>
-  <section class="section">
-   <div class="section-head">ВИЗУАЛ</div>
-   <label class="slider-row"><span>Свет</span><input id="light" type="range" min=".2" max="4" step=".1" value="2.2"><output id="light-val">2.2</output></label>
-   <label class="slider-row"><span>Туман</span><input id="fog" type="range" min="80" max="400" step="10" value="220"><output id="fog-val">220</output></label>
-   <label class="color-row">Цвет неба<input id="sky" type="color" value="#aeb8c5"></label>
-   <label class="color-row">Цвет окружения<input id="world-color" type="color" value="#858c88"></label>
-  </section>
-  <section class="section last">
-   <div class="section-head">КАМЕРА</div>
-   <button id="camera-reset" class="wide">Сбросить вид</button>
-   <p class="help">ЛКМ — вращать · Колесо — масштаб · Shift + ЛКМ — панорама</p>
-  </section>
-  <div class="inspector-foot">M94 · BIRTHDAY BUILD</div>
- </aside>
+  <aside class="panel">
+    <div class="panel-title">СЦЕНА</div>
+    <div class="object-row"><span class="dot"></span> Большая плоскость</div>
+    <div class="panel-title transform-title">ТРАНСФОРМАЦИЯ</div>
+    <div class="mode-switch">
+      <button data-mode="translate" class="active">MOVE</button>
+      <button data-mode="rotate">ROTATE</button>
+      <button data-mode="scale">SCALE</button>
+    </div>
+    <div class="axis-grid">
+      <label>X<input id="x" type="number" step="0.1" value="0"></label>
+      <label>Y<input id="y" type="number" step="0.1" value="0"></label>
+      <label>Z<input id="z" type="number" step="0.1" value="0"></label>
+    </div>
+    <button id="remove" class="wide" disabled>УДАЛИТЬ МОДЕЛЬ</button>
+    <p class="help">Плоскость уже находится в сцене. Импортированная модель появится над ней. Выбирай модель кликом и перемещай её за цветные оси.</p>
+    <div class="panel-foot">M94 · BUILD 01</div>
+  </aside>
 </main>
-</div>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const p = document.createElement("div");
-  p.id = "m94-boot-status";
-  p.textContent = "M94: запускаю 3D-редактор…";
-  p.style.cssText = "position:fixed;z-index:99998;left:12px;bottom:12px;padding:8px 11px;background:#202328;color:#fff;border:1px solid #e7a45e;font:11px monospace";
-  document.body.appendChild(p);
-});
-</script>
-<script type="module">
-const status = document.getElementById("m94-boot-status");
-import("./main.js?build=raw-gh-1").then(() => {
-  if (status) status.remove();
-}).catch((err) => {
-  let p = document.getElementById("m94-error");
-  if (!p) {
-    p = document.createElement("pre");
-    p.id = "m94-error";
-    p.style.cssText = "position:fixed;z-index:99999;left:12px;right:12px;bottom:12px;max-height:45vh;overflow:auto;padding:14px;background:#321f20;color:#ffe3dc;border:1px solid #b66b60;font:12px/1.5 monospace;white-space:pre-wrap";
-    document.body.appendChild(p);
-  }
-  p.textContent = "M94: ошибка загрузки редактора\\n" + (err && (err.stack || err.message) || String(err));
-  if (status) status.remove();
-});
-</script>
-</body></html>
+<script type="module" src="./main.js?v=first-clean"></script>
+</body>
+</html>
