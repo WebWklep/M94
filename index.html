@@ -4,7 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#17191d"><title>M94 — postcard studio</title>
 <link rel="stylesheet" href="./style.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script>
 window.addEventListener("error", function(e) {
   let p = document.getElementById("m94-error");
@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 <script type="module">
 const status = document.getElementById("m94-boot-status");
-import("./main.js?build=4d8a7d5").then(() => {
+import("./main.js?build=unpkg-1").then(() => {
   if (status) status.remove();
 }).catch((err) => {
   let p = document.getElementById("m94-error");
