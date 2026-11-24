@@ -12,7 +12,7 @@ const sun=new THREE.DirectionalLight(0xffe4c8,2.2);sun.position.set(-15,25,12);s
 const world=new THREE.Group();world.name='POSTCARD SCENE';scene.add(world);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),new THREE.MeshStandardMaterial({color:0x858c88,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.3;scene.add(ground);
 const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,0,-25);orbit.maxPolarAngle=Math.PI*.49;
-const gizmo=new TransformControls(camera,renderer.domElement);scene.add(gizmo.getHelper());gizmo.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
+const gizmo=new TransformControls(camera,renderer.domElement);scene.add(gizmo);gizmo.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
 const loader=new GLTFLoader(),objectLoader=new ObjectLoader(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
 let selected=null,car=null,preview=false,keys=new Set(),speed=0,steer=0,jumping=false,jumpT=0,last=performance.now();
 const mat=(c,r=.75,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
