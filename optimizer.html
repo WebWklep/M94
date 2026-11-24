@@ -13,16 +13,19 @@
 <div class="actions"><button class="btn" id="reset" disabled>Сбросить вид</button><button class="btn" id="report" disabled>Скачать отчёт</button></div></section>
 <section class="panel"><div class="eyebrow">PARTS & UV</div><div class="field"><label for="part">Выбранная деталь</label><select id="part" disabled><option>Сначала загрузи модель</option></select></div>
 <div class="field"><label for="role">Группа детали</label><select id="role" disabled><option value="body">Кузов</option><option value="wheels">Колёса</option><option value="other">Другое</option></select></div>
+<div class="field"><label for="bodyColor">Цвет кузова</label><div class="actions" style="align-items:center"><input id="bodyColor" type="color" value="#245b91" disabled style="width:58px;height:38px;padding:2px;background:#253440;border:1px solid #ffffff35;border-radius:8px"><button class="btn" id="paintBody" disabled>Покрасить группу «Кузов»</button></div><small class="muted">Назначь нужным деталям группу «Кузов» в списке справа. UV не нужны.</small></div>
+<div class="field"><label for="plateImage">Номерной знак (PNG / JPG)</label><input id="plateImage" type="file" accept="image/png,image/jpeg" disabled><small class="muted">Загрузи изображение, нажми «Поставить номер», затем кликни по месту номера на машине.</small><div class="actions"><button class="btn" id="placePlate" disabled>Поставить номер: кликни по машине</button><button class="btn" id="removePlate" disabled>Убрать последний номер</button></div><label for="plateWidth">Ширина накладки</label><input id="plateWidth" type="range" min="0.25" max="1.5" step="0.05" value="0.8" disabled></div>
 <div class="actions"><button class="btn primary" id="makeUv" disabled>Создать UV выбранной детали</button><button class="btn" id="uvPng" disabled>Скачать UV PNG</button><button class="btn" id="makeAllUv" disabled>Единая UV всей модели</button><button class="btn" id="allUvPng" disabled>Скачать общую UV</button></div><div class="uv-preview"><div class="uv-preview-head"><b>UV предпросмотр</b><small class="muted" id="uvLabel">Деталь не выбрана</small></div><div id="uvPreview" class="uv-empty">После создания UV здесь появится миниатюра развёртки именно выбранного объекта.</div></div>
 <div class="field"><label for="texture">Твоя текстура JPG / PNG</label><input id="texture" type="file" accept="image/png,image/jpeg" disabled></div>
 <div class="actions"><button class="btn" id="applyRole" disabled>Применить к группе</button></div>
 <div class="meshlist" id="meshlist"></div></section></div>
 <section class="panel" style="margin-top:16px"><div class="eyebrow">FINAL EXPORT</div><h2>Сжать и скачать BMW</h2><p>Сжатие геометрии Meshopt и уменьшение точности вершин. После экспорта проверим реальный размер — цель 20 МБ, но она зависит от исходной модели и текстур.</p>
-<div class="actions"><button class="btn primary" id="compress" disabled>Сжать модель</button><button class="btn" id="download" disabled>Скачать GLB</button></div><div class="status" id="result">Пока ничего не экспортировано.</div></section>
+<div class="actions"><div class="field"><label for="simplifyRatio">Упрощение геометрии при экспорте</label><select id="simplifyRatio" disabled><option value="0.75">Лёгкое — оставить 75%</option><option value="0.5" selected>Среднее — оставить 50%</option><option value="0.3">Сильное — оставить 30%</option><option value="0.15">Очень сильное — оставить 15%</option></select><small class="muted">Уменьшает число полигонов. Сильное упрощение может сгладить мелкие формы.</small></div>
+<div class="actions"><button class="btn primary" id="compress" disabled>Упростить и сжать модель</button><button class="btn" id="download" disabled>Скачать GLB</button></div><div class="status" id="result">Пока ничего не экспортировано.</div></section>
 <p class="muted">Важно: UV-развёртка создаётся отдельно для каждой выбранной сетки. Если кузов или колёса объединены в один объект, их сначала нужно разделить. Автоматическая UV-развёртка раскладывает поверхность, но не угадывает, какая сетка является кузовом или колесом — это назначается вручную.</p>
 </main>
 <script type="module">
-const $=id=>document.getElementById(id);let THREE,OrbitControls,GLTFLoader,GLTFExporter,renderer,scene,camera,controls,root,meshes=[],selected=null,atlasLib=null,uvBlob=null,allUvBlob=null,textureFile=null,finalBlob=null,sourceName='BMW',snowPoints=null,snowPositions=null,snowVelocities=null,snowEnabled=true;
+const $=id=>document.getElementById(id);let THREE,OrbitControls,GLTFLoader,GLTFExporter,renderer,scene,camera,controls,root,meshes=[],selected=null,atlasLib=null,uvBlob=null,allUvBlob=null,textureFile=null,finalBlob=null,sourceName='BMW',snowPoints=null,snowPositions=null,snowVelocities=null,snowEnabled=true,plateFile=null,plateArmed=false,plateOverlays=[];
 const status=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
 const progress=n=>$('progress').style.width=n+'%';
 const fmt=n=>n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
@@ -32,6 +35,21 @@ function setupView(){
  camera=new THREE.PerspectiveCamera(42,1,.01,10000);camera.position.set(5,3,6);
  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;
  $('viewport').appendChild(renderer.domElement);
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+ renderer.domElement.addEventListener('pointerdown',event=>{
+  if(!plateArmed||!plateFile||!root)return;
+  const rect=renderer.domElement.getBoundingClientRect();pointer.x=((event.clientX-rect.left)/rect.width)*2-1;pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(meshes,false)[0];if(!hit)return;
+  const url=URL.createObjectURL(plateFile);new THREE.TextureLoader().load(url,tex=>{
+   tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true;
+   const aspect=tex.image.width/Math.max(1,tex.image.height),width=Number($('plateWidth').value),height=width/aspect;
+   const normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize(),worldPos=hit.point.clone().addScaledVector(normal,0.004);
+   const localPos=root.worldToLocal(worldPos.clone()),localNormal=root.worldToLocal(worldPos.clone().add(normal)).sub(localPos).normalize();
+   const decal=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));
+   decal.position.copy(localPos);decal.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),localNormal);decal.renderOrder=8;decal.userData.m94Plate=true;root.add(decal);plateOverlays.push(decal);
+   URL.revokeObjectURL(url);plateArmed=false;$('placePlate').textContent='Поставить номер: кликни по машине';$('placePlate').classList.remove('primary');$('removePlate').disabled=false;status('Номер добавлен. Чтобы поставить второй, выбери другое изображение и повтори.','ok');
+  },undefined,err=>{URL.revokeObjectURL(url);status('Не удалось загрузить изображение номера: '+err.message,'error')});
+ });
  scene.add(new THREE.HemisphereLight(0xffffff,0x59616a,2));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(5,9,7);scene.add(light);
  controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
  const resize=()=>{const w=$('viewport').clientWidth,h=$('viewport').clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};new ResizeObserver(resize).observe($('viewport'));resize();
@@ -53,11 +71,11 @@ $('file').addEventListener('change',async e=>{
   THREE=t;OrbitControls=ctrl.OrbitControls;GLTFLoader=loader.GLTFLoader;GLTFExporter=exp.GLTFExporter;setupView();sourceName=file.name.replace(/\.glb$/i,'');
   status('Читаю геометрию GLB…');const buffer=await file.arrayBuffer();const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
   root=gltf.scene;scene.add(root);meshes=[];let vertices=0;
-  root.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position){meshes.push(o);vertices+=o.geometry.attributes.position.count;o.userData.m94Role='body';const original=Array.isArray(o.material)?o.material:[o.material];const display=original.map(mat=>{if(!mat)return mat;const copy=mat.clone();copy.transparent=false;copy.opacity=1;copy.alphaTest=0;copy.depthWrite=true;copy.needsUpdate=true;return copy});o.material=Array.isArray(o.material)?display:display[0]}});
+  root.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position){meshes.push(o);vertices+=o.geometry.attributes.position.count;o.userData.m94Role='other';const original=Array.isArray(o.material)?o.material:[o.material];const display=original.map(mat=>{if(!mat)return mat;const copy=mat.clone();copy.transparent=false;copy.opacity=1;copy.alphaTest=0;copy.depthWrite=true;copy.needsUpdate=true;return copy});o.material=Array.isArray(o.material)?display:display[0]}});
   if(!meshes.length)throw new Error('В GLB не найдены mesh-объекты с геометрией.');
   const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());root.position.sub(center);const span=Math.max(size.x,size.y,size.z)||1;camera.position.set(span*1.5,span,span*1.7);controls.target.set(0,0,0);camera.near=span/1000;camera.far=span*100;camera.updateProjectionMatrix();controls.update();
   $('size').textContent=fmt(file.size);$('meshes').textContent=meshes.length;$('vertices').textContent=vertices.toLocaleString('ru-RU');refreshList();selectMesh(0);
-  ['reset','report','makeUv','makeAllUv','compress'].forEach(id=>$(id).disabled=false);$('texture').disabled=false;$('applyRole').disabled=false;
+  ['reset','report','makeUv','makeAllUv','compress','paintBody','bodyColor','plateImage','placePlate','plateWidth','simplifyRatio'].forEach(id=>$(id).disabled=false);$('texture').disabled=false;$('applyRole').disabled=false;
   progress(100);status('Готово: модель загружена и отображается. Выбери объект справа.','ok');
  }catch(err){console.error(err);status('Не удалось загрузить модель: '+(err?.message||String(err)),'error');progress(0)}
  finally{$('file').disabled=false}
@@ -114,6 +132,14 @@ $('makeAllUv').addEventListener('click',async()=>{
 });
 $('uvPng').addEventListener('click',()=>{const blob=selected?.userData.m94UvBlob;if(blob)save(blob,sourceName+'_'+(selected.name||'mesh')+'_UV.png');else status('У выбранной детали ещё нет UV. Сначала создай развёртку.','error')});
 $('allUvPng').addEventListener('click',()=>{if(allUvBlob)save(allUvBlob,sourceName+'_ALL_PARTS_UV_ATLAS.png');else status('Общая UV ещё не создана.','error')});
+$('paintBody').addEventListener('click',()=>{
+ const color=$('bodyColor').value;let count=0;
+ meshes.forEach(m=>{if(m.userData.m94Role!=='body')return;const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mat=>{if(mat&&mat.color){mat.color.set(color);mat.map=null;mat.needsUpdate=true}});count++});
+ status(count?'Цвет '+color+' применён к '+count+' объектам группы «Кузов».':'Сначала назначь деталям кузова группу «Кузов» через список справа.',count?'ok':'error');
+});
+$('plateImage').addEventListener('change',e=>{plateFile=e.target.files?.[0]||null;if(plateFile)status('Изображение номера выбрано. Нажми размещение, затем кликни по нужному месту на машине.')});
+$('placePlate').addEventListener('click',()=>{if(!plateFile){status('Сначала загрузи PNG или JPG с номером.','error');return}plateArmed=!plateArmed;$('placePlate').textContent=plateArmed?'Режим включён — кликни по машине':'Поставить номер: кликни по машине';$('placePlate').classList.toggle('primary',plateArmed);status(plateArmed?'Кликни по поверхности переднего или заднего бампера в окне модели.':'Размещение отменено.')});
+$('removePlate').addEventListener('click',()=>{const decal=plateOverlays.pop();if(decal){root.remove(decal);decal.geometry.dispose();decal.material.map?.dispose();decal.material.dispose();$('removePlate').disabled=plateOverlays.length===0;status('Последняя накладка номера удалена.','ok')}});
 $('texture').addEventListener('change',e=>{textureFile=e.target.files?.[0]||null;if(textureFile)status('Текстура выбрана: '+textureFile.name+'. Нажми «Применить к группе».')});
 $('applyRole').addEventListener('click',async()=>{if(!textureFile||!selected)return;try{const url=URL.createObjectURL(textureFile),img=new Image();img.onload=()=>{const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.flipY=false;tex.needsUpdate=true;const role=selected.userData.m94Role;let count=0;meshes.forEach(m=>{if(m.userData.m94Role!==role||!m.geometry.attributes.uv)return;const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mat=>{if(mat){mat.map=tex;mat.color?.set(0xffffff);mat.needsUpdate=true}});count++});URL.revokeObjectURL(url);status('Текстура применена к '+count+' объектам группы «'+role+'» с UV.','ok')};img.onerror=()=>{URL.revokeObjectURL(url);status('Не удалось прочитать изображение.','error')};img.src=url}catch(err){status('Ошибка текстуры: '+err.message,'error')}});
 function save(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},15000)}
@@ -123,10 +149,10 @@ $('compress').addEventListener('click',async()=>{
   const raw=await new Promise((resolve,reject)=>new GLTFExporter().parse(root,r=>resolve(new Uint8Array(r)),reject,{binary:true,onlyVisible:true}));progress(25);
   status('Подключаю Meshoptimizer…');
   const [core,extensions,functions,meshoptPkg]=await Promise.all([import('https://esm.sh/@gltf-transform/core@4.2.1'),import('https://esm.sh/@gltf-transform/extensions@4.2.1'),import('https://esm.sh/@gltf-transform/functions@4.2.1'),import('https://esm.sh/meshoptimizer@1.0.1')]);
-  const {WebIO}=core,{ALL_EXTENSIONS}=extensions,{prune,dedup,meshopt}=functions,{MeshoptEncoder}=meshoptPkg;await MeshoptEncoder.ready;
+  const {WebIO}=core,{ALL_EXTENSIONS}=extensions,{prune,dedup,meshopt,simplify,weld}=functions,{MeshoptEncoder,MeshoptSimplifier}=meshoptPkg;await MeshoptEncoder.ready;await MeshoptSimplifier.ready;
   const io=new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder});
   const doc=await io.readBinary(raw);progress(45);status('Сжимаю геометрию и удаляю лишние данные…');
-  await doc.transform(prune(),dedup(),meshopt({encoder:MeshoptEncoder,level:'medium'}));progress(80);
+  const ratio=Number($('simplifyRatio').value);await doc.transform(weld({tolerance:0.0001}),simplify({simplifier:MeshoptSimplifier,ratio,error:0.01}),prune(),dedup(),meshopt({encoder:MeshoptEncoder,level:'medium'}));progress(80);
   const bytes=await io.writeBinary(doc);finalBlob=new Blob([bytes],{type:'model/gltf-binary'});$('download').disabled=false;
   const target=20*1024*1024;$('result').textContent='Итоговый размер: '+fmt(finalBlob.size)+'\nЦель 20 МБ: '+(finalBlob.size<=target?'достигнута':'не достигнута — можно отдельно уменьшить разрешение текстур или плотность сетки')+'\nРазмер проверен после экспорта.';
   progress(100);status('Оптимизация завершена. Скачай GLB и проверь его в просмотрщике.','ok');
