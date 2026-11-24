@@ -73,7 +73,7 @@ function installGeometry(geometry, filename){
   clearModel();
   const box = centerAndScale(geometry);
   vehicleGeometry = geometry;
-  const hasFaces = !!geometry.index || (geometry.getAttribute('normal') && geometry.getAttribute('normal').count > 0 && geometry.getAttribute('position').count < 150000);
+  const hasFaces = !!geometry.index;
   const hasColors = !!geometry.getAttribute('color');
   if(hasFaces){
     if(!geometry.getAttribute('normal')) geometry.computeVertexNormals();
