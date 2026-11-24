@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17191d">
+<title>M94 — DFF LAB</title>
+<link rel="stylesheet" href="./dff-lab.css?v=1">
+<script type="importmap">
+{"imports":{"three":"https://esm.sh/three@0.160.0","three/addons/":"https://esm.sh/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">M94 <span> / DFF LAB</span></a>
+  <div class="status"><i id="status-dot"></i><span id="status">ОЖИДАНИЕ ФАЙЛОВ</span></div>
+  <div class="actions">
+    <button id="load-dff" class="primary">ОТКРЫТЬ DFF</button>
+    <input id="dff-file" type="file" accept=".dff" hidden>
+    <button id="load-txd">ОТКРЫТЬ TXD</button>
+    <input id="txd-file" type="file" accept=".txd" hidden>
+    <button id="focus">В ЦЕНТР</button>
+  </div>
+</header>
+<main>
+  <section id="viewport">
+    <div id="stage"></div>
+    <div class="view-label">RENDERWARE VIEWPORT <span>VINcent TEST</span></div>
+    <div id="message" class="message">Сначала открой vincent.dff и Vincent.txd</div>
+    <div class="controls-hint">ЛКМ — вращение · Колесо — масштаб · ПКМ — панорама</div>
+    <div class="view-tools">
+      <button id="wire">WIREFRAME: OFF</button>
+      <button id="unlit">UNLIT: OFF</button>
+    </div>
+  </section>
+  <aside class="panel">
+    <section>
+      <div class="panel-title">ЗАГРУЗКА</div>
+      <div class="file-row"><span>DFF</span><b id="dff-name">не выбран</b></div>
+      <div class="file-row"><span>TXD</span><b id="txd-name">не выбран</b></div>
+      <div class="panel-title sub">СОДЕРЖИМОЕ</div>
+      <div class="metric"><span>Геометрии</span><b id="geometries">—</b></div>
+      <div class="metric"><span>Объекты</span><b id="meshes">—</b></div>
+      <div class="metric"><span>Материалы</span><b id="materials">—</b></div>
+      <div class="metric"><span>Текстуры TXD</span><b id="textures">—</b></div>
+    </section>
+    <section class="texture-section">
+      <div class="panel-title">ТЕКСТУРЫ В TXD</div>
+      <div id="texture-list" class="texture-list">Пока не загружены</div>
+    </section>
+    <section class="log-section">
+      <div class="panel-title">ДИАГНОСТИКА</div>
+      <pre id="log">Ожидание файлов…</pre>
+    </section>
+    <div class="panel-foot">M94 · ISOLATED DFF TEST</div>
+  </aside>
+</main>
+<script type="module" src="./dff-lab.js?v=1"></script>
+</body>
+</html>
