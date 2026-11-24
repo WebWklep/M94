@@ -62,7 +62,7 @@ document.querySelector('#reset').addEventListener('click',()=>{
  camera.position.set(7,4.2,8);controls.target.set(0,1,0);controls.update();
 });
 
-const modelUrl='https://www.dropbox.com/scl/fi/2188qj6popl6xckn1c4x6/bmw_3_series_e30_sedan.glb?rlkey=5k5zx0i3bffgvec9ltjs3dkal&dl=1';
+const modelUrl='https://dl.dropboxusercontent.com/scl/fi/2188qj6popl6xckn1c4x6/bmw_3_series_e30_sedan.glb?rlkey=5k5zx0i3bffgvec9ltjs3dkal&dl=1';
 const loader=new GLTFLoader();
 loader.load(modelUrl,gltf=>{
  const model=gltf.scene;
