@@ -213,7 +213,15 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
       <label for="snowSpeed">Скорость падения <output id="snowSpeedValue">0.45</output></label>
       <input id="snowSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.45">
     </div>
-    <p class="note">Небольшие хлопья медленно падают вокруг площадки.</p>
+    <div class="control">
+      <label for="flakeSize">Размер снежинок <output id="flakeSizeValue">4.2</output></label>
+      <input id="flakeSize" type="range" min="1.5" max="9" step="0.1" value="4.2">
+    </div>
+    <div class="control">
+      <label for="flakeAmount">Количество снежинок <output id="flakeAmountValue">420</output></label>
+      <input id="flakeAmount" type="range" min="60" max="420" step="20" value="420">
+    </div>
+    <p class="note">Можно сделать редкие крупные хлопья или более плотный снегопад.</p>
   </section>
   <section>
     <h2>Как сохранить работу</h2>
@@ -419,6 +427,8 @@ const grid = new THREE.GridHelper(200,200,0x59636a,0x343b40);grid.position.y=.00
 
 // Slow, light snowfall across the editor area.
 const snowCount=420;
+let snowAmount=420;
+let snowFlakeSize=4.2;
 const snowPositions=new Float32Array(snowCount*3);
 const snowVelocities=new Float32Array(snowCount);
 const snowDrifts=new Float32Array(snowCount);
@@ -431,8 +441,9 @@ for(let i=0;i<snowCount;i++){
 }
 const snowGeometry=new THREE.BufferGeometry();
 snowGeometry.setAttribute('position',new THREE.BufferAttribute(snowPositions,3));
-const snowMaterial=new THREE.PointsMaterial({color:0xf4f8fb,size:4.2,sizeAttenuation:true,transparent:true,opacity:.86,depthWrite:false});
+const snowMaterial=new THREE.PointsMaterial({color:0xf4f8fb,size:snowFlakeSize,sizeAttenuation:true,transparent:true,opacity:.86,depthWrite:false});
 const fallingSnow=new THREE.Points(snowGeometry,snowMaterial);
+snowGeometry.setDrawRange(0,snowAmount);
 fallingSnow.frustumCulled=false;
 scene.add(fallingSnow);
 function updateSnow(delta){
@@ -504,7 +515,7 @@ function saveLocal(){
 function serializeScene(){
   return {
     version:2,project:'M94 mini-game exterior',
-    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,exposure:renderer.toneMappingExposure,vignetteStrength,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray(),cameraFov,walkSpeed,mouseSensitivity,snowParams},
+    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,exposure:renderer.toneMappingExposure,vignetteStrength,snowEnabled,snowFallSpeed,snowAmount,snowFlakeSize,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray(),cameraFov,walkSpeed,mouseSensitivity,snowParams},
     objects:objects.filter(o=>o.parent===scene).map(o=>({
       asset:o.userData.assetId,
       label:o.userData.label,
@@ -710,7 +721,7 @@ function makeSnowdrift(id,saved=null){
   root.add(mound);
   // A low, compressed snow skirt gives the drift a rounded footprint instead of a thin white hill.
   const skirtMaterial=makeSnowMaterial(false);
-  skirtMaterial.color.set(0xb9c5c8);
+  skirtMaterial.color.set(snowParams.tint);
   skirtMaterial.bumpScale=snowParams.relief*.78;
   const skirt=new THREE.Mesh(new THREE.SphereGeometry(1,48,28),skirtMaterial);
   skirt.userData.snowSkirt=true;
@@ -726,7 +737,9 @@ function makeSnowdrift(id,saved=null){
     const index=objects.length;
     root.position.set(((index%3)-1)*6,0,Math.floor(index/3)*6);
   }
-  scene.add(root);objects.push(root);selectObject(root);saveLocal();
+  scene.add(root);objects.push(root);
+  updateSnowMaterialLook();
+  selectObject(root);saveLocal();
   setStatus('Добавлен '+preset.name+' · можно менять размер и форму масштабом');
 }
 SNOWDRIFTS.forEach(preset=>{
@@ -820,6 +833,8 @@ function restoreScene(data){
     if(Number.isFinite(env.cameraFov)){cameraFov=env.cameraFov;camera.fov=cameraFov;camera.updateProjectionMatrix();$('cameraFov').value=cameraFov;$('cameraFovValue').textContent=cameraFov+'°';}
     if(Number.isFinite(env.walkSpeed)){walkSpeed=env.walkSpeed;$('walkSpeed').value=walkSpeed;$('walkSpeedValue').textContent=walkSpeed.toFixed(1)+' м/с';}
     if(Number.isFinite(env.exposure)){renderer.toneMappingExposure=env.exposure;$('exposureSlider').value=env.exposure;$('exposureValue').textContent=env.exposure.toFixed(2);}
+    if(Number.isFinite(env.snowAmount)){snowAmount=THREE.MathUtils.clamp(env.snowAmount,60,snowCount);snowGeometry.setDrawRange(0,snowAmount);$('flakeAmount').value=snowAmount;$('flakeAmountValue').textContent=String(snowAmount);}
+    if(Number.isFinite(env.snowFlakeSize)){snowFlakeSize=THREE.MathUtils.clamp(env.snowFlakeSize,1.5,9);snowMaterial.size=snowFlakeSize;$('flakeSize').value=snowFlakeSize;$('flakeSizeValue').textContent=snowFlakeSize.toFixed(1);}
     if(Number.isFinite(env.vignetteStrength)){vignetteStrength=env.vignetteStrength;$('vignetteSlider').value=vignetteStrength;$('vignetteValue').textContent=vignetteStrength.toFixed(2);$('cinemaVignette').style.opacity=String(vignetteStrength);}
     if(Number.isFinite(env.mouseSensitivity)){mouseSensitivity=env.mouseSensitivity;walkControls.pointerSpeed=mouseSensitivity;$('lookSensitivity').value=mouseSensitivity;$('lookSensitivityValue').textContent=mouseSensitivity.toFixed(1)+'×';}
     if(env.snowParams&&typeof env.snowParams==='object'){Object.assign(snowParams,env.snowParams);syncSnowMaterialControls();updateSnowMaterialLook();}
@@ -920,7 +935,7 @@ async function makeSnowCoverFromPlant(image){
   const sourceWidth=image.naturalWidth||image.width;
   const sourceHeight=image.naturalHeight||image.height;
   // Downsample before pixel processing. This keeps memory and CPU cost modest.
-  const scale=Math.min(1,768/Math.max(sourceWidth,sourceHeight));
+  const scale=Math.min(1,640/Math.max(sourceWidth,sourceHeight));
   const w=Math.max(256,Math.round(sourceWidth*scale));
   const h=Math.max(256,Math.round(sourceHeight*scale));
   const source=document.createElement('canvas');source.width=w;source.height=h;
@@ -986,7 +1001,9 @@ function applyGroundTexture(enabled){
         setStatus('Обрабатываю снег небольшими порциями…');
         const generated=await makeSnowCoverFromPlant(sourceTexture.image);
         snowTexture=generated.map;snowGroundBump=generated.bumpMap;
-        ground.material.map=snowTexture;ground.material.bumpMap=snowGroundBump;ground.material.bumpScale=.14;
+        ground.material.map=snowTexture;ground.material.bumpMap=snowGroundBump;
+        const groundRepeat=textureScale/Math.max(.5,snowParams.clumps);
+        snowTexture.repeat.set(groundRepeat,groundRepeat);snowGroundBump.repeat.set(groundRepeat,groundRepeat);
         sourceTexture.dispose();useSnow=true;
         ground.material.color.set(snowParams.tint);ground.material.roughness=snowParams.roughness;ground.material.bumpScale=snowParams.relief*.34;ground.material.needsUpdate=true;
         $('groundBtn').textContent='Выключить текстуру снега';
@@ -998,7 +1015,10 @@ function applyGroundTexture(enabled){
   }
   useSnow=enabled;ground.material.map=useSnow?snowTexture:null;
   ground.material.bumpMap=useSnow?snowGroundBump:null;
-  ground.material.color.set(useSnow?0xffffff:0x777b7d);ground.material.needsUpdate=true;
+  ground.material.color.set(useSnow?snowParams.tint:0x777b7d);
+  ground.material.roughness=useSnow?snowParams.roughness:1;
+  ground.material.bumpScale=useSnow?snowParams.relief*.34:0;
+  ground.material.needsUpdate=true;
   $('groundBtn').textContent=useSnow?'Выключить текстуру снега':'Включить текстуру снега';
   setStatus(useSnow?'Снежный покров включён':'Текстура снега выключена');
   saveLocal();
@@ -1082,11 +1102,20 @@ $('snowToggleBtn').addEventListener('click',()=>{
 $('snowSpeed').addEventListener('input',e=>{
   snowFallSpeed=Number(e.target.value);$('snowSpeedValue').textContent=snowFallSpeed.toFixed(2);saveLocal();
 });
+$('flakeSize').addEventListener('input',e=>{
+  snowFlakeSize=Number(e.target.value);snowMaterial.size=snowFlakeSize;
+  $('flakeSizeValue').textContent=snowFlakeSize.toFixed(1);saveLocal();
+});
+$('flakeAmount').addEventListener('input',e=>{
+  snowAmount=THREE.MathUtils.clamp(Number(e.target.value),60,snowCount);
+  snowGeometry.setDrawRange(0,snowAmount);$('flakeAmountValue').textContent=String(snowAmount);saveLocal();
+});
 $('textureScale').addEventListener('input',e=>{
   textureScale=Number(e.target.value);
   $('textureScaleValue').textContent=textureScale.toFixed(1)+'×';
-  if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);
-  if(snowGroundBump)snowGroundBump.repeat.set(textureScale,textureScale);
+  const repeat=textureScale/Math.max(.5,snowParams.clumps);
+  if(snowTexture)snowTexture.repeat.set(repeat,repeat);
+  if(snowGroundBump)snowGroundBump.repeat.set(repeat,repeat);
   saveLocal();
 });
 $('fogDensity').addEventListener('input',e=>{
@@ -1152,6 +1181,8 @@ syncCameraReadouts();
 syncRigControls();
 syncSnowMaterialControls();
 walkControls.pointerSpeed=mouseSensitivity;
+$('flakeSizeValue').textContent=snowFlakeSize.toFixed(1);
+$('flakeAmountValue').textContent=String(snowAmount);
 $('exposureValue').textContent=renderer.toneMappingExposure.toFixed(2);
 $('vignetteValue').textContent=vignetteStrength.toFixed(2);
 $('cinemaVignette').style.opacity=String(vignetteStrength);
