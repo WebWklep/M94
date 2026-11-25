@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>M94 — Scene Builder</title>
+<style>
+:root{color-scheme:dark;--bg:#101214;--panel:#171a1d;--line:#30363b;--muted:#9aa2a9;--text:#f0f2f3;--accent:#d4e0e5}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button{font:inherit;color:inherit;background:#24292d;border:1px solid #3b4248;border-radius:4px;padding:8px 10px;cursor:pointer}
+button:hover{background:#30373c}button:disabled{opacity:.35;cursor:default}
+#app{height:100%;display:grid;grid-template-columns:280px 1fr;grid-template-rows:56px 1fr}
+header{grid-column:1/3;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);background:#141719}
+.brand{font-weight:800;letter-spacing:.08em;font-size:12px}.brand span{color:#c4d3d9}
+#status{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-actions{margin-left:auto;display:flex;gap:7px}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:14px}
+h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#b5bdc2;margin:6px 0 10px}
+.section{padding-bottom:16px;margin-bottom:15px;border-bottom:1px solid var(--line)}
+.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.asset{min-height:54px;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;background:#202529}
+.asset strong{font-size:12px}.asset small{font-size:10px;color:var(--muted)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mode.active{background:#d8e2e5;color:#11171a;border-color:#d8e2e5}
+.row{display:flex;gap:7px;margin-top:8px}.row>*{flex:1}
+.note{color:var(--muted);font-size:11px;margin:8px 0 0}
+#objectName{font-size:12px;color:#e8edef;min-height:18px;margin:3px 0}
+#viewport{position:relative;min-width:0;min-height:0}
+#canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:16px;bottom:14px;background:#101416c9;border:1px solid #3a4146;padding:8px 10px;color:#bcc4c8;font-size:11px;pointer-events:none}
+.top-tag{position:absolute;top:13px;left:15px;color:#aeb7bc;font-size:10px;letter-spacing:.13em;text-transform:uppercase;pointer-events:none}
+#fileInput{display:none}
+@media(max-width:760px){#app{grid-template-columns:210px 1fr}aside{padding:10px}.asset-grid{grid-template-columns:1fr}.header-actions button{padding:7px}.brand{font-size:10px}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand">M94 <span>/ SCENE BUILDER</span></div>
+  <div id="status">Сцена готова — добавь здание из библиотеки слева</div>
+  <div class="header-actions">
+    <button id="saveBtn">Сохранить раскладку</button>
+    <button id="loadBtn">Загрузить</button>
+    <button id="clearBtn">Очистить</button>
+  </div>
+</header>
+<aside>
+  <section class="section">
+    <h2>Библиотека моделей</h2>
+    <div class="asset-grid" id="assetGrid"></div>
+    <p class="note">Нажми на модель — она появится на площадке. Дальше перетаскивай её гизмо-стрелками.</p>
+  </section>
+  <section class="section">
+    <h2>Инструмент</h2>
+    <div class="modes">
+      <button class="mode active" data-mode="translate">Двигать</button>
+      <button class="mode" data-mode="rotate">Вращать</button>
+      <button class="mode" data-mode="scale">Масштаб</button>
+    </div>
+    <div class="row">
+      <button id="deleteBtn" disabled>Удалить объект</button>
+      <button id="focusBtn">Показать всё</button>
+    </div>
+    <div id="objectName">Ничего не выбрано</div>
+    <p class="note">Мышь: левая кнопка — выбрать объект, гизмо — менять его. Правая кнопка — двигать камеру, колесо — приближение.</p>
+  </section>
+  <section class="section">
+    <h2>Площадка</h2>
+    <button id="groundBtn">Включить текстуру снега</button>
+    <p class="note">Текстура берётся из Plant.JPG. Её можно включить или выключить.</p>
+  </section>
+  <section>
+    <h2>Как сохранить работу</h2>
+    <p class="note">«Сохранить раскладку» скачает JSON с позициями, поворотами и масштабом объектов. Этот файл потом подключим к игре. Текущая расстановка также запоминается в этом браузере.</p>
+  </section>
+</aside>
+<main id="viewport">
+  <div class="top-tag">ВНЕШНЯЯ СЦЕНА / СВОБОДНАЯ РАССТАНОВКА</div>
+  <canvas id="canvas"></canvas>
+  <div class="hint">Перетащи модель через гизмо · ПКМ — обзор · колесо — зум</div>
+</main>
+</div>
+<input id="fileInput" type="file" accept=".json,application/json">
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+
+const BASE = new URL('./assets/models/', location.href);
+const ASSETS = [
+  {id:'zamak',name:'Здание / замок',file:'zamak hd.glb',target:18},
+  {id:'maz',name:'Валера',file:'MAZ.glb',target:1.75},
+  {id:'2101close',name:'ВАЗ-2101 закрытый',file:'2101close.glb',target:4.1},
+  {id:'2101open',name:'ВАЗ-2101 открытый',file:'2101open.glb',target:4.1},
+  {id:'bmw',name:'BMW E30',file:'30.glb',target:4.3},
+  {id:'audi',name:'Audi Quattro',file:'AUDI.glb',target:4.4},
+  {id:'delorean',name:'DeLorean',file:'DMC.glb',target:4.2},
+  {id:'countach',name:'Countach',file:'LAMBO.glb',target:4.2},
+  {id:'lapata',name:'Лапата',file:'L.glb',target:2.2}
+];
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const viewport = $('viewport');
+const statusEl = $('status');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x171b1e);
+const camera = new THREE.PerspectiveCamera(52,1,.05,1500);
+camera.position.set(13,10,16);
+const renderer = new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const orbit = new OrbitControls(camera,renderer.domElement);
+orbit.target.set(0,1,0);orbit.enableDamping=true;orbit.dampingFactor=.07;orbit.maxPolarAngle=Math.PI*.49;
+const hemi = new THREE.HemisphereLight(0xe5f0ff,0x4b4b45,2.1);scene.add(hemi);
+const key = new THREE.DirectionalLight(0xfff5e6,2.4);key.position.set(-12,22,9);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
+const fill = new THREE.DirectionalLight(0xb6d4ff,.8);fill.position.set(12,10,-14);scene.add(fill);
+
+const groundMat = new THREE.MeshStandardMaterial({color:0x777b7d,roughness:1});
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300),groundMat);
+ground.rotation.x=-Math.PI/2;ground.position.y=-.025;ground.receiveShadow=true;scene.add(ground);
+const grid = new THREE.GridHelper(200,200,0x59636a,0x343b40);grid.position.y=.002;scene.add(grid);
+
+const transform = new TransformControls(camera,renderer.domElement);
+scene.add(transform.getHelper());
+transform.setMode('translate');
+transform.addEventListener('dragging-changed',e=>{orbit.enabled=!e.value;});
+let selected=null;
+let currentMode='translate';
+let useSnow=false;
+let snowTexture=null;
+const loadedCache=new Map();
+const objects=[];
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+let pointerDown=null;
+let persistTimer=null;
+
+function setStatus(message){statusEl.textContent=message;}
+function updateSelection(){
+  $('deleteBtn').disabled=!selected;
+  $('objectName').textContent=selected?(selected.userData.label||selected.name):'Ничего не выбрано';
+  if(selected)transform.attach(selected);else transform.detach();
+}
+function selectObject(obj){
+  selected=obj||null;
+  if(selected)transform.setMode(currentMode);
+  updateSelection();
+}
+function saveLocal(){
+  clearTimeout(persistTimer);
+  persistTimer=setTimeout(()=>{
+    try{localStorage.setItem('m94-scene-layout',JSON.stringify(serializeScene()));}catch(e){}
+  },250);
+}
+function serializeScene(){
+  return {version:1,project:'M94 mini-game exterior',objects:objects.filter(o=>o.parent===scene).map(o=>({
+    asset:o.userData.assetId,
+    label:o.userData.label,
+    position:o.position.toArray(),
+    rotation:[o.rotation.x,o.rotation.y,o.rotation.z],
+    scale:o.scale.toArray()
+  }))};
+}
+function addAssetButton(asset){
+  const btn=document.createElement('button');btn.className='asset';
+  const strong=document.createElement('strong');strong.textContent=asset.name;
+  const small=document.createElement('small');small.textContent=asset.file;
+  btn.append(strong,small);btn.addEventListener('click',()=>addAsset(asset.id));
+  $('assetGrid').appendChild(btn);
+}
+ASSETS.forEach(addAssetButton);
+
+function getAsset(id){return ASSETS.find(a=>a.id===id);}
+function loadGLTF(asset){
+  if(loadedCache.has(asset.id))return loadedCache.get(asset.id);
+  const promise=new Promise((resolve,reject)=>{
+    const loader=new GLTFLoader();
+    const url=new URL(encodeURIComponent(asset.file),BASE).href;
+    loader.load(url,gltf=>resolve(gltf.scene),undefined,error=>reject(error));
+  });
+  loadedCache.set(asset.id,promise);
+  promise.catch(()=>loadedCache.delete(asset.id));
+  return promise;
+}
+async function addAsset(id, saved=null){
+  const asset=getAsset(id);if(!asset)return;
+  setStatus('Загружаю: '+asset.name+'…');
+  try{
+    const source=await loadGLTF(asset);
+    const root=new THREE.Group();
+    root.name=asset.name;
+    root.userData.assetId=asset.id;
+    root.userData.label=asset.name;
+    const model=source.clone(true);
+    root.add(model);
+    model.traverse(child=>{
+      if(child.isMesh){child.castShadow=true;child.receiveShadow=true;}
+    });
+    let box=new THREE.Box3().setFromObject(model);
+    const size=box.getSize(new THREE.Vector3());
+    const maxDim=Math.max(size.x,size.y,size.z)||1;
+    const factor=asset.target/maxDim;
+    model.scale.setScalar(factor);
+    box.setFromObject(model);
+    const center=box.getCenter(new THREE.Vector3());
+    const min=box.min.clone();
+    model.position.x-=center.x;
+    model.position.z-=center.z;
+    model.position.y-=min.y;
+    const index=objects.length;
+    if(saved){
+      root.position.fromArray(saved.position||[0,0,0]);
+      root.rotation.set(...(saved.rotation||[0,0,0]));
+      root.scale.fromArray(saved.scale||[1,1,1]);
+    }else{
+      root.position.set(((index%4)-1.5)*5,0,Math.floor(index/4)*5);
+    }
+    scene.add(root);objects.push(root);
+    selectObject(root);
+    saveLocal();
+    setStatus('Добавлено: '+asset.name+' · можно двигать, вращать и менять масштаб');
+  }catch(error){
+    console.error(error);
+    setStatus('Не удалось загрузить '+asset.file+' — проверь, что файл опубликован в GitHub');
+  }
+}
+function clearScene(){
+  transform.detach();selected=null;
+  for(const obj of [...objects])scene.remove(obj);
+  objects.length=0;updateSelection();saveLocal();setStatus('Сцена очищена');
+}
+function restoreScene(data){
+  clearScene();
+  const entries=Array.isArray(data)?data:(data&&Array.isArray(data.objects)?data.objects:[]);
+  (async()=>{
+    for(const entry of entries){
+      if(getAsset(entry.asset))await addAsset(entry.asset,entry);
+    }
+    setStatus('Раскладка загружена · объектов: '+objects.length);
+    focusAll();
+  })();
+}
+function focusAll(){
+  if(objects.length===0){orbit.target.set(0,0,0);camera.position.set(13,10,16);orbit.update();return;}
+  const box=new THREE.Box3();
+  objects.forEach(o=>box.expandByObject(o));
+  const center=box.getCenter(new THREE.Vector3());
+  const size=box.getSize(new THREE.Vector3());
+  const distance=Math.max(size.x,size.y,size.z,5)*1.55;
+  orbit.target.copy(center);
+  camera.position.set(center.x+distance*.95,center.y+distance*.7,center.z+distance*1.05);
+  camera.near=Math.max(.01,distance/1000);camera.far=Math.max(1000,distance*30);camera.updateProjectionMatrix();orbit.update();
+}
+
+$('deleteBtn').addEventListener('click',()=>{
+  if(!selected)return;
+  const old=selected;transform.detach();scene.remove(old);
+  const i=objects.indexOf(old);if(i>=0)objects.splice(i,1);
+  selected=null;updateSelection();saveLocal();setStatus('Объект удалён');
+});
+$('focusBtn').addEventListener('click',focusAll);
+$('clearBtn').addEventListener('click',()=>{
+  if(confirm('Удалить все объекты с площадки?'))clearScene();
+});
+document.querySelectorAll('.mode').forEach(btn=>btn.addEventListener('click',()=>{
+  currentMode=btn.dataset.mode;transform.setMode(currentMode);
+  document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b===btn));
+}));
+$('saveBtn').addEventListener('click',()=>{
+  const data=serializeScene();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='m94-scene-layout.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  setStatus('Раскладка сохранена в m94-scene-layout.json');
+});
+$('loadBtn').addEventListener('click',()=>$('fileInput').click());
+$('fileInput').addEventListener('change',async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{restoreScene(JSON.parse(await file.text()));}catch(err){setStatus('Не удалось прочитать JSON раскладки');}
+  e.target.value='';
+});
+transform.addEventListener('objectChange',saveLocal);
+
+$('groundBtn').addEventListener('click',async()=>{
+  if(!snowTexture){
+    setStatus('Загружаю Plant.JPG…');
+    new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,texture=>{
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+      texture.repeat.set(18,18);
+      snowTexture=texture;ground.material.map=texture;ground.material.color.set(0xffffff);ground.material.needsUpdate=true;
+      useSnow=true;$('groundBtn').textContent='Выключить текстуру снега';setStatus('Текстура снега включена');
+    },undefined,()=>setStatus('Plant.JPG не загрузилась — проверь имя файла'));
+  }else{
+    useSnow=!useSnow;ground.material.map=useSnow?snowTexture:null;
+    ground.material.color.set(useSnow?0xffffff:0x777b7d);ground.material.needsUpdate=true;
+    $('groundBtn').textContent=useSnow?'Выключить текстуру снега':'Включить текстуру снега';
+    setStatus(useSnow?'Текстура снега включена':'Текстура снега выключена');
+  }
+});
+
+function onPointerDown(e){pointerDown={x:e.clientX,y:e.clientY};}
+function onPointerUp(e){
+  if(!pointerDown)return;
+  const moved=Math.hypot(e.clientX-pointerDown.x,e.clientY-pointerDown.y);pointerDown=null;
+  if(moved>5||transform.axis)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(objects,true);
+  if(hits.length){
+    let obj=hits[0].object;
+    while(obj.parent&&obj.parent!==scene)obj=obj.parent;
+    if(obj.parent===scene&&objects.includes(obj))selectObject(obj);
+  }else selectObject(null);
+}
+renderer.domElement.addEventListener('pointerdown',onPointerDown);
+renderer.domElement.addEventListener('pointerup',onPointerUp);
+window.addEventListener('keydown',e=>{
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(selected&&!(document.activeElement instanceof HTMLInputElement))$('deleteBtn').click();
+  }
+  if(e.key==='Escape')selectObject(null);
+});
+function resize(){
+  const w=viewport.clientWidth,h=viewport.clientHeight;
+  camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
+}
+new ResizeObserver(resize).observe(viewport);resize();
+function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera);}
+animate();
+
+try{
+  const saved=localStorage.getItem('m94-scene-layout');
+  if(saved){const data=JSON.parse(saved);if(data.objects&&data.objects.length){setStatus('Восстанавливаю твою последнюю расстановку…');restoreScene(data);}}
+}catch(e){}
+</script>
+</body>
+</html>
