@@ -34,6 +34,7 @@ input[type=range]{width:100%;accent-color:#dce7eb}
 #viewport{position:relative;min-width:0;min-height:0}
 #canvas{display:block;width:100%;height:100%}
 #crosshair{display:none;position:absolute;left:50%;top:50%;width:9px;height:9px;border:1px solid #f4f7f8;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px #111;pointer-events:none}
+#cinemaVignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(3,8,12,.82) 100%);opacity:.18}
 body.walking #crosshair{display:block}
 body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
 .hint{position:absolute;left:16px;bottom:14px;background:#101416c9;border:1px solid #3a4146;padding:8px 10px;color:#bcc4c8;font-size:11px;pointer-events:none}
@@ -95,7 +96,19 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
       <label for="cameraFov">Угол обзора / зум объектива <output id="cameraFovValue">70°</output></label>
       <input id="cameraFov" type="range" min="35" max="100" step="1" value="70">
     </div>
-    <p class="note">Игровая камера — отдельный объект в сцене. Выбери её и перемести или поверни гизмо, в том числе по высоте. Это не камера редактора.</p>
+    <div class="control">
+      <label for="rigHeight">Высота игровой камеры <output id="rigHeightValue">1.65 м</output></label>
+      <input id="rigHeight" type="range" min="0.5" max="5" step="0.05" value="1.65">
+    </div>
+    <div class="control">
+      <label for="rigPitch">Наклон взгляда <output id="rigPitchValue">0°</output></label>
+      <input id="rigPitch" type="range" min="-35" max="35" step="1" value="0">
+    </div>
+    <div class="control">
+      <label for="rigYaw">Поворот взгляда <output id="rigYawValue">0°</output></label>
+      <input id="rigYaw" type="range" min="-180" max="180" step="1" value="0">
+    </div>
+    <p class="note">Камеру можно двигать и вращать гизмо в сцене, а высоту и направление тонко настраивать здесь.</p>
   </section>
   <section class="section">
     <h2>Поверхность</h2>
@@ -115,6 +128,35 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
     <p class="note">Три процедурные формы. Добавляй несколько экземпляров, затем двигай, крути и меняй размер как обычные модели.</p>
   </section>
   <section class="section">
+    <h2>Материал снега</h2>
+    <div class="asset-grid">
+      <button class="asset snow-preset" data-snowpreset="powder"><strong>Рыхлый порошок</strong><small>Пышный свежий снег</small></button>
+      <button class="asset snow-preset" data-snowpreset="cars"><strong>Как на машинах</strong><small>Крупные мягкие комки</small></button>
+      <button class="asset snow-preset" data-snowpreset="packed"><strong>Слежавшийся</strong><small>Тяжёлый снег у дороги</small></button>
+    </div>
+    <div class="control">
+      <label for="snowRelief">Рыхлость / рельеф <output id="snowReliefValue">0.42</output></label>
+      <input id="snowRelief" type="range" min="0.05" max="0.75" step="0.01" value="0.42">
+    </div>
+    <div class="control">
+      <label for="snowClumps">Размер снежных комков <output id="snowClumpsValue">1.35×</output></label>
+      <input id="snowClumps" type="range" min="0.5" max="2.5" step="0.05" value="1.35">
+    </div>
+    <div class="control">
+      <label for="snowPacking">Слежавшийся / грязный низ <output id="snowPackingValue">0.35</output></label>
+      <input id="snowPacking" type="range" min="0" max="1" step="0.01" value="0.35">
+    </div>
+    <div class="control">
+      <label for="snowRoughness">Матовая поверхность <output id="snowRoughnessValue">0.98</output></label>
+      <input id="snowRoughness" type="range" min="0.7" max="1" step="0.01" value="0.98">
+    </div>
+    <div class="control">
+      <label for="snowTint">Оттенок снега</label>
+      <input id="snowTint" type="color" value="#e8edef">
+    </div>
+    <p class="note">Настройки сразу применяются к уже расставленным сугробам и снежной поверхности.</p>
+  </section>
+  <section class="section">
     <h2>Небо и освещение</h2>
     <div class="sky-buttons">
       <button class="sky-mode active" data-sky="overcast">Пасмурно</button>
@@ -129,7 +171,15 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
       <label for="sunSlider">Солнечный свет <output id="sunValue">2.2</output></label>
       <input id="sunSlider" type="range" min="0" max="4" step="0.1" value="2.2">
     </div>
-    <p class="note">Выбери зимнее небо и подстрой общую яркость сцены.</p>
+    <div class="control">
+      <label for="exposureSlider">Экспозиция / яркость <output id="exposureValue">1.15</output></label>
+      <input id="exposureSlider" type="range" min="0.6" max="1.8" step="0.05" value="1.15">
+    </div>
+    <div class="control">
+      <label for="vignetteSlider">Виньетка / затемнение краёв <output id="vignetteValue">0.18</output></label>
+      <input id="vignetteSlider" type="range" min="0" max="0.65" step="0.01" value="0.18">
+    </div>
+    <p class="note">Выбери зимнее небо, настрой свет и кинематографичное затемнение кадра.</p>
   </section>
   <section class="section">
     <h2>Дымка / Silent Hill</h2>
@@ -149,6 +199,10 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
     <div class="control">
       <label for="walkSpeed">Скорость передвижения <output id="walkSpeedValue">4.2 м/с</output></label>
       <input id="walkSpeed" type="range" min="0.5" max="12" step="0.1" value="4.2">
+    </div>
+    <div class="control">
+      <label for="lookSensitivity">Чувствительность мыши <output id="lookSensitivityValue">1.0×</output></label>
+      <input id="lookSensitivity" type="range" min="0.2" max="2.5" step="0.1" value="1">
     </div>
     <p class="note">WASD — ходьба, мышь — поворот взгляда, Esc — выход. Стартовая точка и направление берутся из игровой камеры, установленной в сцене.</p>
   </section>
@@ -171,6 +225,7 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
   <canvas id="canvas"></canvas>
   <div class="hint">Выбирай поверхность или модель · Move / Rotate / Scale · ПКМ — обзор · колесо — зум</div>
   <div id="crosshair"></div>
+  <div id="cinemaVignette"></div>
 </main>
 </div>
 <input id="fileInput" type="file" accept=".json,application/json">
@@ -201,8 +256,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x171b1e);
 const camera = new THREE.PerspectiveCamera(70,1,.05,1500);
 camera.position.set(13,10,16);
-const renderer = new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const renderer = new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -298,7 +353,7 @@ $('walkBtn').addEventListener('click',()=>{
   walkControls.lock();
 });
 const hemi = new THREE.HemisphereLight(0xe5f0ff,0x4b4b45,2.1);scene.add(hemi);
-const key = new THREE.DirectionalLight(0xfff5e6,2.4);key.position.set(-12,22,9);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
+const key = new THREE.DirectionalLight(0xfff5e6,2.4);key.position.set(-12,22,9);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);
 const fill = new THREE.DirectionalLight(0xb6d4ff,.8);fill.position.set(12,10,-14);scene.add(fill);
 
 // Procedural winter sky panorama. It is generated locally in the browser.
@@ -363,7 +418,7 @@ scene.add(groundRoot);
 const grid = new THREE.GridHelper(200,200,0x59636a,0x343b40);grid.position.y=.002;scene.add(grid);
 
 // Slow, light snowfall across the editor area.
-const snowCount=900;
+const snowCount=420;
 const snowPositions=new Float32Array(snowCount*3);
 const snowVelocities=new Float32Array(snowCount);
 const snowDrifts=new Float32Array(snowCount);
@@ -376,7 +431,7 @@ for(let i=0;i<snowCount;i++){
 }
 const snowGeometry=new THREE.BufferGeometry();
 snowGeometry.setAttribute('position',new THREE.BufferAttribute(snowPositions,3));
-const snowMaterial=new THREE.PointsMaterial({color:0xf4f8fb,size:.34,sizeAttenuation:true,transparent:true,opacity:.84,depthWrite:false});
+const snowMaterial=new THREE.PointsMaterial({color:0xf4f8fb,size:4.2,sizeAttenuation:true,transparent:true,opacity:.86,depthWrite:false});
 const fallingSnow=new THREE.Points(snowGeometry,snowMaterial);
 fallingSnow.frustumCulled=false;
 scene.add(fallingSnow);
@@ -449,7 +504,7 @@ function saveLocal(){
 function serializeScene(){
   return {
     version:2,project:'M94 mini-game exterior',
-    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray(),cameraFov,walkSpeed},
+    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,exposure:renderer.toneMappingExposure,vignetteStrength,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray(),cameraFov,walkSpeed,mouseSensitivity,snowParams},
     objects:objects.filter(o=>o.parent===scene).map(o=>({
       asset:o.userData.assetId,
       label:o.userData.label,
@@ -470,9 +525,14 @@ ASSETS.forEach(addAssetButton);
 
 let snowSurfaceMap=null;
 let snowSurfaceBump=null;
+let snowMainMaterial=null;
+let snowSkirtMaterial=null;
+let snowParams={relief:.42,clumps:1.35,packing:.35,roughness:.98,tint:'#e8edef'};
+let vignetteStrength=.18;
+let mouseSensitivity=1;
 function createSnowSurfaceMaps(){
   if(snowSurfaceMap&&snowSurfaceBump)return;
-  const size=512;
+  const size=384;
   const c=document.createElement('canvas');c.width=c.height=size;
   const ctx=c.getContext('2d');
   const base=ctx.createLinearGradient(0,0,size,size);
@@ -480,65 +540,118 @@ function createSnowSurfaceMaps(){
   ctx.fillStyle=base;ctx.fillRect(0,0,size,size);
   let seed=9137;
   const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-  // Fine granular snow, soft compressed patches and a little road dust.
-  for(let i=0;i<3100;i++){
-    const x=rand()*size,y=rand()*size,r=.9+rand()*5.8;
-    const v=Math.floor(205+rand()*48);
-    ctx.fillStyle='rgba('+v+','+(v+2)+','+(v+3)+','+(0.035+rand()*.12)+')';
-    ctx.beginPath();ctx.ellipse(x,y,r,r*(.35+rand()),rand()*.7,0,Math.PI*2);ctx.fill();
+  // Some visible soft clumps, with sparse fine grains so the snow is not noisy.
+  for(let i=0;i<1350;i++){
+    const x=rand()*size,y=rand()*size,r=1.2+rand()*5.2;
+    const v=Math.floor(210+rand()*42);
+    ctx.fillStyle='rgba('+v+','+(v+2)+','+(v+3)+','+(0.04+rand()*.14)+')';
+    ctx.beginPath();ctx.ellipse(x,y,r,r*(.42+rand()*.55),rand()*.7,0,Math.PI*2);ctx.fill();
   }
-  for(let i=0;i<225;i++){
-    const x=rand()*size,y=rand()*size,r=18+rand()*88;
+  for(let i=0;i<115;i++){
+    const x=rand()*size,y=rand()*size,r=14+rand()*42;
     const g=ctx.createRadialGradient(x,y,0,x,y,r);
     const shade=rand();
-    g.addColorStop(0,shade>.76?'rgba(110,124,128,.20)':'rgba(255,255,255,.38)');
+    g.addColorStop(0,shade>.76?'rgba(112,126,130,.16)':'rgba(255,255,255,.5)');
+    g.addColorStop(.72,'rgba(255,255,255,.16)');
     g.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-  }
-  for(let i=0;i<420;i++){
-    const x=rand()*size,y=rand()*size;
-    ctx.strokeStyle=rand()>.42?'rgba(255,255,255,.24)':'rgba(111,124,128,.10)';
-    ctx.lineWidth=.4+rand()*1.2;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(rand()-.5)*15,y+(rand()-.5)*8);ctx.stroke();
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*(.5+rand()*.6),rand(),0,Math.PI*2);ctx.fill();
   }
   snowSurfaceMap=new THREE.CanvasTexture(c);
   snowSurfaceMap.colorSpace=THREE.SRGBColorSpace;
   snowSurfaceMap.wrapS=snowSurfaceMap.wrapT=THREE.RepeatWrapping;
-  snowSurfaceMap.repeat.set(1.6,1.6);
-  snowSurfaceMap.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  snowSurfaceMap.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),4);
 
   const bumpCanvas=document.createElement('canvas');bumpCanvas.width=bumpCanvas.height=size;
   const bctx=bumpCanvas.getContext('2d');
-  bctx.fillStyle='#aaa';bctx.fillRect(0,0,size,size);
-  for(let i=0;i<12000;i++){
-    const x=rand()*size,y=rand()*size,r=1.2+rand()*6.5;
-    const tone=Math.floor(100+rand()*125);
-    bctx.fillStyle='rgb('+tone+','+tone+','+tone+')';
-    bctx.beginPath();bctx.ellipse(x,y,r,r*(.4+rand()),rand(),0,Math.PI*2);bctx.fill();
+  const bg=bctx.createLinearGradient(0,0,size,size);
+  bg.addColorStop(0,'#c8c8c8');bg.addColorStop(.5,'#a0a0a0');bg.addColorStop(1,'#d0d0d0');
+  bctx.fillStyle=bg;bctx.fillRect(0,0,size,size);
+  for(let i=0;i<2300;i++){
+    const x=rand()*size,y=rand()*size,r=1.3+rand()*6.8;
+    const tone=Math.floor(118+rand()*125);
+    bctx.fillStyle='rgba('+tone+','+tone+','+tone+','+(.16+rand()*.42)+')';
+    bctx.beginPath();bctx.ellipse(x,y,r,r*(.45+rand()*.65),rand(),0,Math.PI*2);bctx.fill();
   }
-  for(let i=0;i<200;i++){
-    const x=rand()*size,y=rand()*size,r=10+rand()*42;
+  for(let i=0;i<95;i++){
+    const x=rand()*size,y=rand()*size,r=8+rand()*34;
     const g=bctx.createRadialGradient(x,y,0,x,y,r);
-    const t=Math.floor(90+rand()*150);
-    g.addColorStop(0,'rgba('+t+','+t+','+t+',.24)');
+    const t=Math.floor(95+rand()*140);
+    g.addColorStop(0,'rgba('+t+','+t+','+t+',.30)');
     g.addColorStop(1,'rgba(160,160,160,0)');
-    bctx.fillStyle=g;bctx.beginPath();bctx.arc(x,y,r,0,Math.PI*2);bctx.fill();
+    bctx.fillStyle=g;bctx.beginPath();bctx.ellipse(x,y,r,r*.7,rand(),0,Math.PI*2);bctx.fill();
   }
   snowSurfaceBump=new THREE.CanvasTexture(bumpCanvas);
   snowSurfaceBump.wrapS=snowSurfaceBump.wrapT=THREE.RepeatWrapping;
-  snowSurfaceBump.repeat.set(1.6,1.6);
 }
 function makeSnowMaterial(vertexColors=true){
   createSnowSurfaceMaps();
-  return new THREE.MeshStandardMaterial({
-    color:0xffffff,
-    map:snowSurfaceMap,
-    bumpMap:snowSurfaceBump,
-    bumpScale:.24,
-    roughness:.99,
-    metalness:0,
-    vertexColors
+  if(vertexColors&&snowMainMaterial)return snowMainMaterial;
+  if(!vertexColors&&snowSkirtMaterial)return snowSkirtMaterial;
+  const material=new THREE.MeshStandardMaterial({
+    color:0xffffff,map:snowSurfaceMap,bumpMap:snowSurfaceBump,
+    bumpScale:snowParams.relief,roughness:snowParams.roughness,metalness:0,vertexColors
   });
+  if(vertexColors)snowMainMaterial=material;else snowSkirtMaterial=material;
+  return material;
+}
+function updateSnowVertexColors(){
+  const dirty=new THREE.Color(0x748287).lerp(new THREE.Color(0xb6c1c4),1-snowParams.packing);
+  const packed=new THREE.Color(0xbac5c8);
+  const fresh=new THREE.Color(0xf1f4f3);
+  for(const root of objects){
+    if(!root.userData.snowdriftId)continue;
+    const main=root.children.find(child=>child.userData.snowMain);
+    if(main&&main.geometry){
+      const pos=main.geometry.attributes.position;
+      let colors=main.geometry.attributes.color;
+      if(!colors){colors=new THREE.Float32BufferAttribute(new Float32Array(pos.count*3),3);main.geometry.setAttribute('color',colors);}
+      for(let i=0;i<pos.count;i++){
+        const elevation=THREE.MathUtils.clamp(pos.getY(i)/(main.userData.snowHeight*.58),0,1);
+        const tint=dirty.clone().lerp(packed,THREE.MathUtils.smoothstep(elevation,0,.34)).lerp(fresh,THREE.MathUtils.smoothstep(elevation,.28,.88));
+        const mottling=(Math.sin(i*.091)+Math.cos(i*.047))*.025;
+        tint.multiplyScalar(1+mottling);
+        colors.setXYZ(i,tint.r,tint.g,tint.b);
+      }
+      colors.needsUpdate=true;
+    }
+    const skirt=root.children.find(child=>child.userData.snowSkirt);
+    if(skirt)skirt.material.color.set(new THREE.Color(0xb6c1c4).lerp(new THREE.Color(0x77858a),snowParams.packing*.65));
+  }
+}
+function updateSnowMaterialLook(){
+  const repeat=1.65/Math.max(.5,snowParams.clumps);
+  if(snowSurfaceMap)snowSurfaceMap.repeat.set(repeat,repeat);
+  if(snowSurfaceBump)snowSurfaceBump.repeat.set(repeat,repeat);
+  for(const mat of [snowMainMaterial,snowSkirtMaterial]){
+    if(!mat)continue;
+    mat.bumpScale=snowParams.relief;
+    mat.roughness=snowParams.roughness;
+    mat.color.set(snowParams.tint);
+    mat.needsUpdate=true;
+  }
+  if(useSnow){
+    ground.material.bumpScale=snowParams.relief*.34;
+    ground.material.color.set(snowParams.tint);
+    if(snowTexture)snowTexture.repeat.set(textureScale/Math.max(.5,snowParams.clumps),textureScale/Math.max(.5,snowParams.clumps));
+    if(snowGroundBump)snowGroundBump.repeat.set(textureScale/Math.max(.5,snowParams.clumps),textureScale/Math.max(.5,snowParams.clumps));
+  }
+  updateSnowVertexColors();
+  saveLocal();
+}
+function setSnowPreset(name){
+  const presets={
+    powder:{relief:.56,clumps:1.55,packing:.12,roughness:1,tint:'#f0f3f3'},
+    cars:{relief:.46,clumps:1.32,packing:.38,roughness:.99,tint:'#e8edef'},
+    packed:{relief:.18,clumps:.82,packing:.82,roughness:.91,tint:'#d4dcde'}
+  };
+  const preset=presets[name];if(!preset)return;
+  Object.assign(snowParams,preset);
+  $('snowRelief').value=snowParams.relief;$('snowReliefValue').textContent=snowParams.relief.toFixed(2);
+  $('snowClumps').value=snowParams.clumps;$('snowClumpsValue').textContent=snowParams.clumps.toFixed(2)+'×';
+  $('snowPacking').value=snowParams.packing;$('snowPackingValue').textContent=snowParams.packing.toFixed(2);
+  $('snowRoughness').value=snowParams.roughness;$('snowRoughnessValue').textContent=snowParams.roughness.toFixed(2);
+  $('snowTint').value=snowParams.tint;
+  updateSnowMaterialLook();setStatus('Материал снега: '+name);
 }
 const SNOWDRIFTS = [
   {id:'snow-01',name:'Сугроб 01 · округлый',w:6.5,d:4.6,h:1.65,peaks:[[0,-.02,1.25,.23,.27],[-.25,.18,.42,.16,.2],[.24,-.2,.34,.19,.18]]},
@@ -546,7 +659,7 @@ const SNOWDRIFTS = [
   {id:'snow-03',name:'Сугроб 03 · длинный вал',w:11,d:4.5,h:2.1,peaks:[[-.34,-.05,.95,.19,.34],[-.08,.08,1.5,.18,.3],[.2,-.04,1.25,.2,.31],[.42,.12,.58,.15,.24]]}
 ];
 function createSnowdriftGeometry(preset){
-  const nx=76,nz=56,positions=[],indices=[],uvs=[],colors=[];
+  const nx=48,nz=36,positions=[],indices=[],uvs=[],colors=[];
   const dirty=new THREE.Color(0x879397);
   const packed=new THREE.Color(0xbac5c8);
   const fresh=new THREE.Color(0xf0f3f3);
@@ -563,9 +676,9 @@ function createSnowdriftGeometry(preset){
       const edgeWave=1+.10*Math.sin(ix*.37+iz*.19)+.065*Math.cos(iz*.51-ix*.12);
       const edge=Math.pow(Math.max(0,Math.sin(Math.PI*(u+.5))*Math.sin(Math.PI*(v+.5))),.20);
       const broadNoise=(Math.sin(ix*.21+iz*.08)*.55+Math.cos(iz*.17-ix*.12)*.45);
-      const clumpNoise=Math.sin(ix*.83+iz*.37)*.55+Math.cos(iz*.71-ix*.49)*.45;
-      const granular=(Math.sin(ix*1.73+iz*.63)+Math.cos(iz*1.29-ix*.37)+Math.sin((ix+iz)*.31))*.025;
-      const y=Math.max(0,(height*edgeWave+broadNoise*.10+clumpNoise*.055+granular)*edge)*preset.h/1.65;
+      const clumpNoise=Math.sin(ix*.56+iz*.29)*.55+Math.cos(iz*.47-ix*.36)*.45;
+      const granular=(Math.sin(ix*1.31+iz*.51)+Math.cos(iz*.91-ix*.29)+Math.sin((ix+iz)*.23))*.032;
+      const y=Math.max(0,(height*edgeWave+broadNoise*.12+clumpNoise*.085+granular)*edge)*preset.h/1.65;
       positions.push(u*preset.w,y,v*preset.d);
       uvs.push(ix/nx,iz/nz);
       const elevation=THREE.MathUtils.clamp(y/(preset.h*.58),0,1);
@@ -589,16 +702,18 @@ function createSnowdriftGeometry(preset){
 function makeSnowdrift(id,saved=null){
   const preset=SNOWDRIFTS.find(item=>item.id===id);if(!preset)return;
   const root=new THREE.Group();
-  root.name=preset.name;root.userData.assetId=id;root.userData.label=preset.name;
+  root.name=preset.name;root.userData.assetId=id;root.userData.label=preset.name;root.userData.snowdriftId=id;
   const material=makeSnowMaterial(true);
   const mound=new THREE.Mesh(createSnowdriftGeometry(preset),material);
+  mound.userData.snowMain=true;mound.userData.snowHeight=preset.h;
   mound.castShadow=true;mound.receiveShadow=true;
   root.add(mound);
   // A low, compressed snow skirt gives the drift a rounded footprint instead of a thin white hill.
   const skirtMaterial=makeSnowMaterial(false);
   skirtMaterial.color.set(0xb9c5c8);
-  skirtMaterial.bumpScale=.30;
+  skirtMaterial.bumpScale=snowParams.relief*.78;
   const skirt=new THREE.Mesh(new THREE.SphereGeometry(1,48,28),skirtMaterial);
+  skirt.userData.snowSkirt=true;
   skirt.scale.set(preset.w*.53,.34,preset.d*.53);
   skirt.position.y=-.075;
   skirt.castShadow=true;skirt.receiveShadow=true;
@@ -704,6 +819,10 @@ function restoreScene(data){
     if(typeof env.fogColor==='string'){fogColor=env.fogColor;scene.fog.color.set(fogColor);$('fogColor').value=fogColor;}
     if(Number.isFinite(env.cameraFov)){cameraFov=env.cameraFov;camera.fov=cameraFov;camera.updateProjectionMatrix();$('cameraFov').value=cameraFov;$('cameraFovValue').textContent=cameraFov+'°';}
     if(Number.isFinite(env.walkSpeed)){walkSpeed=env.walkSpeed;$('walkSpeed').value=walkSpeed;$('walkSpeedValue').textContent=walkSpeed.toFixed(1)+' м/с';}
+    if(Number.isFinite(env.exposure)){renderer.toneMappingExposure=env.exposure;$('exposureSlider').value=env.exposure;$('exposureValue').textContent=env.exposure.toFixed(2);}
+    if(Number.isFinite(env.vignetteStrength)){vignetteStrength=env.vignetteStrength;$('vignetteSlider').value=vignetteStrength;$('vignetteValue').textContent=vignetteStrength.toFixed(2);$('cinemaVignette').style.opacity=String(vignetteStrength);}
+    if(Number.isFinite(env.mouseSensitivity)){mouseSensitivity=env.mouseSensitivity;walkControls.pointerSpeed=mouseSensitivity;$('lookSensitivity').value=mouseSensitivity;$('lookSensitivityValue').textContent=mouseSensitivity.toFixed(1)+'×';}
+    if(env.snowParams&&typeof env.snowParams==='object'){Object.assign(snowParams,env.snowParams);syncSnowMaterialControls();updateSnowMaterialLook();}
     if(typeof env.snowEnabled==='boolean'){snowEnabled=env.snowEnabled;fallingSnow.visible=snowEnabled;$('snowToggleBtn').textContent=snowEnabled?'Выключить снег':'Включить снег';}
     if(env.useSnow)applyGroundTexture(true);
   }
@@ -717,7 +836,7 @@ function restoreScene(data){
       }else if(entry.asset==='camera-rig'){
         cameraRig.position.fromArray(entry.position||[0,1.65,12]);
         cameraRig.rotation.set(...(entry.rotation||[0,0,0]));
-        cameraRig.scale.fromArray(entry.scale||[1,1,1]);cameraRig.visible=true;
+        cameraRig.scale.fromArray(entry.scale||[1,1,1]);cameraRig.visible=true;syncRigControls();
       }else if(SNOWDRIFTS.some(item=>item.id===entry.asset))makeSnowdrift(entry.asset,entry);
       else if(getAsset(entry.asset))await addAsset(entry.asset,entry);
     }
@@ -792,12 +911,18 @@ $('fileInput').addEventListener('change',async e=>{
   try{restoreScene(JSON.parse(await file.text()));}catch(err){setStatus('Не удалось прочитать JSON раскладки');}
   e.target.value='';
 });
-transform.addEventListener('objectChange',saveLocal);
+transform.addEventListener('objectChange',()=>{
+  if(selected===cameraRig)syncRigControls();
+  saveLocal();
+});
 
-function makeSnowCoverFromPlant(image){
+async function makeSnowCoverFromPlant(image){
   const sourceWidth=image.naturalWidth||image.width;
-  const w=Math.min(sourceWidth,2048);
-  const h=Math.max(1,Math.round((image.naturalHeight||image.height)*w/sourceWidth));
+  const sourceHeight=image.naturalHeight||image.height;
+  // Downsample before pixel processing. This keeps memory and CPU cost modest.
+  const scale=Math.min(1,768/Math.max(sourceWidth,sourceHeight));
+  const w=Math.max(256,Math.round(sourceWidth*scale));
+  const h=Math.max(256,Math.round(sourceHeight*scale));
   const source=document.createElement('canvas');source.width=w;source.height=h;
   const sctx=source.getContext('2d',{willReadFrequently:true});sctx.drawImage(image,0,0,w,h);
   const src=sctx.getImageData(0,0,w,h).data;
@@ -808,41 +933,47 @@ function makeSnowCoverFromPlant(image){
   const bctx=bumpCanvas.getContext('2d');const bump=bctx.createImageData(w,h);
   let seed=1717;
   const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-    const i=(y*w+x)*4;
-    const r=src[i]/255,g=src[i+1]/255,b=src[i+2]/255;
-    const lum=.2126*r+.7152*g+.0722*b;
-    // User identified the dark areas of Plant.JPG as vehicle tracks.
-    const track=1-THREE.MathUtils.smoothstep(lum,.20,.50);
-    const grain=(rand()-.5)*.085+Math.sin(x*.21+y*.13)*.018+Math.cos(x*.09-y*.17)*.014;
-    const snowValue=THREE.MathUtils.clamp(.91+grain+(lum-.5)*.05,.78,1);
-    const trackValue=THREE.MathUtils.clamp(.28+lum*.14+(rand()-.5)*.05,.18,.48);
-    const v=THREE.MathUtils.lerp(snowValue,trackValue,track);
-    out.data[i]=Math.round(255*v);
-    out.data[i+1]=Math.round(255*THREE.MathUtils.clamp(v*1.015,0,1));
-    out.data[i+2]=Math.round(255*THREE.MathUtils.clamp(v*1.025,0,1));
-    out.data[i+3]=255;
-    const clump=Math.sin(x*.12)*Math.cos(y*.10)+Math.sin((x+y)*.045);
-    const bumpSnow=THREE.MathUtils.clamp(178+clump*19+(rand()-.5)*52,90,250);
-    const bumpTrack=THREE.MathUtils.clamp(73+lum*40+(rand()-.5)*20,45,132);
-    const bh=THREE.MathUtils.lerp(bumpSnow,bumpTrack,track);
-    bump.data[i]=bump.data[i+1]=bump.data[i+2]=Math.round(bh);bump.data[i+3]=255;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      const r=src[i]/255,g=src[i+1]/255,b=src[i+2]/255;
+      const lum=.2126*r+.7152*g+.0722*b;
+      // Dark regions in Plant.JPG are left as compacted vehicle tracks.
+      const t=Math.max(0,Math.min(1,(lum-.20)/.30));
+      const smooth=t*t*(3-2*t);
+      const track=1-smooth;
+      const grain=(rand()-.5)*.10+Math.sin(x*.18+y*.11)*.022+Math.cos(x*.08-y*.15)*.016;
+      const looseSnow=Math.max(.78,Math.min(1,.92+grain+(lum-.5)*.045));
+      const packedTrack=Math.max(.19,Math.min(.48,.29+lum*.13+(rand()-.5)*.05));
+      const v=looseSnow+(packedTrack-looseSnow)*track;
+      out.data[i]=Math.round(255*v);
+      out.data[i+1]=Math.round(255*Math.min(1,v*1.015));
+      out.data[i+2]=Math.round(255*Math.min(1,v*1.025));
+      out.data[i+3]=255;
+      const clump=Math.sin(x*.09)*Math.cos(y*.075)+Math.sin((x+y)*.035);
+      const bumpSnow=Math.max(96,Math.min(250,178+clump*25+(rand()-.5)*60));
+      const bumpTrack=Math.max(45,Math.min(132,72+lum*42+(rand()-.5)*20));
+      const bh=bumpSnow+(bumpTrack-bumpSnow)*track;
+      bump.data[i]=bump.data[i+1]=bump.data[i+2]=Math.round(bh);bump.data[i+3]=255;
+    }
+    // Yield back to the browser regularly so the editor never locks up for the whole conversion.
+    if((y&31)===31)await new Promise(resolve=>requestAnimationFrame(resolve));
   }
   cctx.putImageData(out,0,0);bctx.putImageData(bump,0,0);
-  // Larger soft snow clumps only on light areas, so tracks stay open.
-  for(let n=0;n<420;n++){
+  // A few larger powder clumps, added sparsely only on the pale snow areas.
+  for(let n=0;n<135;n++){
     const x=rand()*w,y=rand()*h,idx=(Math.floor(y)*w+Math.floor(x))*4;
     const lum=(.2126*src[idx]+.7152*src[idx+1]+.0722*src[idx+2])/255;
     if(lum<.50)continue;
-    const rx=2+rand()*8,ry=1.5+rand()*5;
+    const rx=2+rand()*7,ry=2+rand()*5;
     const g=cctx.createRadialGradient(x,y,0,x,y,Math.max(rx,ry));
-    g.addColorStop(0,'rgba(255,255,255,'+(.10+rand()*.16)+')');
+    g.addColorStop(0,'rgba(255,255,255,'+(.14+rand()*.18)+')');
     g.addColorStop(1,'rgba(255,255,255,0)');
     cctx.fillStyle=g;cctx.beginPath();cctx.ellipse(x,y,rx,ry,rand()*Math.PI,0,Math.PI*2);cctx.fill();
   }
   const map=new THREE.CanvasTexture(colorCanvas);
   map.colorSpace=THREE.SRGBColorSpace;map.wrapS=map.wrapT=THREE.RepeatWrapping;
-  map.repeat.set(textureScale,textureScale);map.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  map.repeat.set(textureScale,textureScale);map.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),4);
   const bumpMap=new THREE.CanvasTexture(bumpCanvas);
   bumpMap.wrapS=bumpMap.wrapT=THREE.RepeatWrapping;bumpMap.repeat.set(textureScale,textureScale);
   return {map,bumpMap};
@@ -850,13 +981,14 @@ function makeSnowCoverFromPlant(image){
 function applyGroundTexture(enabled){
   if(enabled&&!snowTexture){
     setStatus('Читаю Plant.JPG и собираю снежный покров со следами…');
-    new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,sourceTexture=>{
+    new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,async sourceTexture=>{
       try{
-        const generated=makeSnowCoverFromPlant(sourceTexture.image);
+        setStatus('Обрабатываю снег небольшими порциями…');
+        const generated=await makeSnowCoverFromPlant(sourceTexture.image);
         snowTexture=generated.map;snowGroundBump=generated.bumpMap;
         ground.material.map=snowTexture;ground.material.bumpMap=snowGroundBump;ground.material.bumpScale=.14;
         sourceTexture.dispose();useSnow=true;
-        ground.material.color.set(0xffffff);ground.material.roughness=.99;ground.material.needsUpdate=true;
+        ground.material.color.set(snowParams.tint);ground.material.roughness=snowParams.roughness;ground.material.bumpScale=snowParams.relief*.34;ground.material.needsUpdate=true;
         $('groundBtn').textContent='Выключить текстуру снега';
         setStatus('Снежный покров готов: тёмные полосы сохранены как следы шин');
         saveLocal();
@@ -889,6 +1021,23 @@ $('resetCameraRigBtn').addEventListener('click',()=>{
   selectObject(cameraRig);saveLocal();setStatus('Позиция игровой камеры сброшена');
 });
 $('cameraFov').addEventListener('input',e=>setCameraFov(e.target.value));
+function syncRigControls(){
+  $('rigHeight').value=cameraRig.position.y;
+  $('rigHeightValue').textContent=cameraRig.position.y.toFixed(2)+' м';
+  $('rigPitch').value=Math.round(THREE.MathUtils.radToDeg(cameraRig.rotation.x));
+  $('rigPitchValue').textContent=Math.round(THREE.MathUtils.radToDeg(cameraRig.rotation.x))+'°';
+  $('rigYaw').value=Math.round(THREE.MathUtils.radToDeg(cameraRig.rotation.y));
+  $('rigYawValue').textContent=Math.round(THREE.MathUtils.radToDeg(cameraRig.rotation.y))+'°';
+}
+$('rigHeight').addEventListener('input',e=>{
+  cameraRig.position.y=Number(e.target.value);syncRigControls();saveLocal();
+});
+$('rigPitch').addEventListener('input',e=>{
+  cameraRig.rotation.x=THREE.MathUtils.degToRad(Number(e.target.value));syncRigControls();saveLocal();
+});
+$('rigYaw').addEventListener('input',e=>{
+  cameraRig.rotation.y=THREE.MathUtils.degToRad(Number(e.target.value));syncRigControls();saveLocal();
+});
 
 document.querySelectorAll('.sky-mode').forEach(btn=>btn.addEventListener('click',()=>{
   setSky(btn.dataset.sky);saveLocal();setStatus('Небо изменено: '+btn.textContent);
@@ -899,6 +1048,32 @@ $('ambientSlider').addEventListener('input',e=>{
 $('sunSlider').addEventListener('input',e=>{
   key.intensity=Number(e.target.value);$('sunValue').textContent=key.intensity.toFixed(1);saveLocal();
 });
+$('exposureSlider').addEventListener('input',e=>{
+  renderer.toneMappingExposure=Number(e.target.value);
+  $('exposureValue').textContent=renderer.toneMappingExposure.toFixed(2);saveLocal();
+});
+$('vignetteSlider').addEventListener('input',e=>{
+  vignetteStrength=Number(e.target.value);
+  $('vignetteValue').textContent=vignetteStrength.toFixed(2);
+  $('cinemaVignette').style.opacity=String(vignetteStrength);saveLocal();
+});
+$('lookSensitivity').addEventListener('input',e=>{
+  mouseSensitivity=Number(e.target.value);walkControls.pointerSpeed=mouseSensitivity;
+  $('lookSensitivityValue').textContent=mouseSensitivity.toFixed(1)+'×';saveLocal();
+});
+function syncSnowMaterialControls(){
+  $('snowRelief').value=snowParams.relief;$('snowReliefValue').textContent=snowParams.relief.toFixed(2);
+  $('snowClumps').value=snowParams.clumps;$('snowClumpsValue').textContent=snowParams.clumps.toFixed(2)+'×';
+  $('snowPacking').value=snowParams.packing;$('snowPackingValue').textContent=snowParams.packing.toFixed(2);
+  $('snowRoughness').value=snowParams.roughness;$('snowRoughnessValue').textContent=snowParams.roughness.toFixed(2);
+  $('snowTint').value=snowParams.tint;
+}
+$('snowRelief').addEventListener('input',e=>{snowParams.relief=Number(e.target.value);updateSnowMaterialLook();});
+$('snowClumps').addEventListener('input',e=>{snowParams.clumps=Number(e.target.value);updateSnowMaterialLook();});
+$('snowPacking').addEventListener('input',e=>{snowParams.packing=Number(e.target.value);updateSnowMaterialLook();});
+$('snowRoughness').addEventListener('input',e=>{snowParams.roughness=Number(e.target.value);updateSnowMaterialLook();});
+$('snowTint').addEventListener('input',e=>{snowParams.tint=e.target.value;updateSnowMaterialLook();});
+document.querySelectorAll('.snow-preset').forEach(btn=>btn.addEventListener('click',()=>setSnowPreset(btn.dataset.snowpreset)));
 $('snowToggleBtn').addEventListener('click',()=>{
   snowEnabled=!snowEnabled;fallingSnow.visible=snowEnabled;
   $('snowToggleBtn').textContent=snowEnabled?'Выключить снег':'Включить снег';
@@ -974,6 +1149,12 @@ function resize(){
 }
 new ResizeObserver(resize).observe(viewport);resize();
 syncCameraReadouts();
+syncRigControls();
+syncSnowMaterialControls();
+walkControls.pointerSpeed=mouseSensitivity;
+$('exposureValue').textContent=renderer.toneMappingExposure.toFixed(2);
+$('vignetteValue').textContent=vignetteStrength.toFixed(2);
+$('cinemaVignette').style.opacity=String(vignetteStrength);
 let previousFrame=performance.now();
 function animate(now=performance.now()){
   requestAnimationFrame(animate);
