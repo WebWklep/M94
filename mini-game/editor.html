@@ -337,6 +337,7 @@ function finishWalking(){
   cameraRig.position.copy(camera.position);
   cameraRig.quaternion.copy(camera.quaternion);
   cameraRig.visible=true;
+  syncRigControls();
   const forward=walkControls.getDirection(new THREE.Vector3());
   orbit.target.copy(cameraRig.position).addScaledVector(forward,3);
   camera.position.copy(cameraRig.position).addScaledVector(forward,-8).add(new THREE.Vector3(0,4,0));
@@ -1015,6 +1016,11 @@ function applyGroundTexture(enabled){
   }
   useSnow=enabled;ground.material.map=useSnow?snowTexture:null;
   ground.material.bumpMap=useSnow?snowGroundBump:null;
+  if(useSnow){
+    const repeat=textureScale/Math.max(.5,snowParams.clumps);
+    if(snowTexture)snowTexture.repeat.set(repeat,repeat);
+    if(snowGroundBump)snowGroundBump.repeat.set(repeat,repeat);
+  }
   ground.material.color.set(useSnow?snowParams.tint:0x777b7d);
   ground.material.roughness=useSnow?snowParams.roughness:1;
   ground.material.bumpScale=useSnow?snowParams.relief*.34:0;
@@ -1038,7 +1044,7 @@ $('selectCameraRigBtn').addEventListener('click',()=>{
 });
 $('resetCameraRigBtn').addEventListener('click',()=>{
   cameraRig.position.set(0,1.65,12);cameraRig.rotation.set(0,0,0);cameraRig.scale.set(1,1,1);cameraRig.visible=true;
-  selectObject(cameraRig);saveLocal();setStatus('Позиция игровой камеры сброшена');
+  syncRigControls();selectObject(cameraRig);saveLocal();setStatus('Позиция игровой камеры сброшена');
 });
 $('cameraFov').addEventListener('input',e=>setCameraFov(e.target.value));
 function syncRigControls(){
