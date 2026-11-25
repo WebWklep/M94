@@ -33,6 +33,9 @@ input[type=range]{width:100%;accent-color:#dce7eb}
 #objectName{font-size:12px;color:#e8edef;min-height:18px;margin:3px 0}
 #viewport{position:relative;min-width:0;min-height:0}
 #canvas{display:block;width:100%;height:100%}
+#crosshair{display:none;position:absolute;left:50%;top:50%;width:9px;height:9px;border:1px solid #f4f7f8;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px #111;pointer-events:none}
+body.walking #crosshair{display:block}
+body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
 .hint{position:absolute;left:16px;bottom:14px;background:#101416c9;border:1px solid #3a4146;padding:8px 10px;color:#bcc4c8;font-size:11px;pointer-events:none}
 .top-tag{position:absolute;top:13px;left:15px;color:#aeb7bc;font-size:10px;letter-spacing:.13em;text-transform:uppercase;pointer-events:none}
 #fileInput{display:none}
@@ -76,7 +79,11 @@ input[type=range]{width:100%;accent-color:#dce7eb}
   <section class="section">
     <h2>Поверхность</h2>
     <button id="groundBtn">Включить текстуру снега</button>
-    <p class="note">Plant.JPG растягивается один раз на всю площадку, без повторяющейся плитки.</p>
+    <div class="control">
+      <label for="textureScale">Масштаб текстуры <output id="textureScaleValue">1.0×</output></label>
+      <input id="textureScale" type="range" min="0.25" max="12" step="0.25" value="1">
+    </div>
+    <p class="note">1× — изображение растянуто по всей площадке. Чем выше значение, тем чаще повторяется рисунок и мельче выглядит снег.</p>
   </section>
   <section class="section">
     <h2>Сугробы · 3 формы</h2>
@@ -101,6 +108,23 @@ input[type=range]{width:100%;accent-color:#dce7eb}
     <p class="note">Выбери зимнее небо и подстрой общую яркость сцены.</p>
   </section>
   <section class="section">
+    <h2>Дымка / Silent Hill</h2>
+    <div class="control">
+      <label for="fogDensity">Плотность тумана <output id="fogDensityValue">0.008</output></label>
+      <input id="fogDensity" type="range" min="0" max="0.045" step="0.001" value="0.008">
+    </div>
+    <div class="control">
+      <label for="fogColor">Цвет дымки</label>
+      <input id="fogColor" type="color" value="#aebbc0">
+    </div>
+    <p class="note">Туман постепенно скрывает дальние объекты. Ноль — полностью выключен.</p>
+  </section>
+  <section class="section">
+    <h2>Режим ходьбы</h2>
+    <button id="walkBtn">Войти в сцену</button>
+    <p class="note">Кликни «Войти в сцену», затем используй WASD и мышь. Esc — вернуться к расстановке. Высота камеры — примерно 1,65 м.</p>
+  </section>
+  <section class="section">
     <h2>Снегопад</h2>
     <button id="snowToggleBtn">Выключить снег</button>
     <div class="control">
@@ -118,6 +142,7 @@ input[type=range]{width:100%;accent-color:#dce7eb}
   <div class="top-tag">ВНЕШНЯЯ СЦЕНА / СВОБОДНАЯ РАССТАНОВКА</div>
   <canvas id="canvas"></canvas>
   <div class="hint">Перетащи модель через гизмо · ПКМ — обзор · колесо — зум</div>
+  <div id="crosshair"></div>
 </main>
 </div>
 <input id="fileInput" type="file" accept=".json,application/json">
@@ -125,6 +150,7 @@ input[type=range]{width:100%;accent-color:#dce7eb}
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {PointerLockControls} from 'three/addons/controls/PointerLockControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 const BASE = new URL('./assets/models/', location.href);
@@ -156,6 +182,40 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const orbit = new OrbitControls(camera,renderer.domElement);
 orbit.target.set(0,1,0);orbit.enableDamping=true;orbit.dampingFactor=.07;orbit.maxPolarAngle=Math.PI*.49;
+const walkControls = new PointerLockControls(camera,renderer.domElement);
+let walkingMode=false;
+const walkKeys={forward:false,back:false,left:false,right:false};
+let walkSpeed=4.2;
+function finishWalking(){
+  if(!walkingMode)return;
+  walkingMode=false;
+  document.body.classList.remove('walking');
+  orbit.enabled=true;
+  $('walkBtn').textContent='Войти в сцену';
+  const forward=walkControls.getDirection(new THREE.Vector3());
+  orbit.target.copy(camera.position).addScaledVector(forward,4);
+  orbit.target.y=1.0;
+  camera.position.copy(orbit.target).add(new THREE.Vector3(5,4,6));
+  orbit.update();
+  if(selected)transform.attach(selected);
+  setStatus('Режим расстановки · можно снова выбирать объекты');
+}
+walkControls.addEventListener('unlock',finishWalking);
+walkControls.addEventListener('lock',()=>setStatus('Прогулка: WASD — движение · мышь — обзор · Esc — выход'));
+$('walkBtn').addEventListener('click',()=>{
+  if(walkingMode){walkControls.unlock();return;}
+  const offset=camera.position.clone().sub(orbit.target);offset.y=0;
+  if(offset.lengthSq()<.001)offset.set(0,0,1);
+  offset.normalize();
+  camera.position.set(orbit.target.x+offset.x*4,1.65,orbit.target.z+offset.z*4);
+  camera.lookAt(orbit.target.x,1.65,orbit.target.z);
+  orbit.enabled=false;
+  transform.detach();
+  walkingMode=true;
+  document.body.classList.add('walking');
+  $('walkBtn').textContent='Вернуться к редактору';
+  walkControls.lock();
+});
 const hemi = new THREE.HemisphereLight(0xe5f0ff,0x4b4b45,2.1);scene.add(hemi);
 const key = new THREE.DirectionalLight(0xfff5e6,2.4);key.position.set(-12,22,9);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
 const fill = new THREE.DirectionalLight(0xb6d4ff,.8);fill.position.set(12,10,-14);scene.add(fill);
@@ -202,6 +262,10 @@ function setSky(preset){
   document.querySelectorAll('.sky-mode').forEach(btn=>btn.classList.toggle('active',btn.dataset.sky===preset));
 }
 setSky('overcast');
+
+let fogDensity=.008;
+let fogColor='#aebbc0';
+scene.fog=new THREE.FogExp2(new THREE.Color(fogColor),fogDensity);
 
 const groundMat = new THREE.MeshStandardMaterial({color:0x777b7d,roughness:1});
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300),groundMat);
@@ -252,6 +316,7 @@ let selected=null;
 let currentMode='translate';
 let useSnow=false;
 let snowTexture=null;
+let textureScale=1;
 let snowEnabled=true;
 let snowFallSpeed=.45;
 const loadedCache=new Map();
@@ -281,7 +346,7 @@ function saveLocal(){
 function serializeScene(){
   return {
     version:2,project:'M94 mini-game exterior',
-    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow},
+    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor},
     objects:objects.filter(o=>o.parent===scene).map(o=>({
       asset:o.userData.assetId,
       label:o.userData.label,
@@ -425,6 +490,9 @@ function restoreScene(data){
     if(Number.isFinite(env.ambient)){hemi.intensity=env.ambient;$('ambientSlider').value=env.ambient;$('ambientValue').textContent=env.ambient.toFixed(1);}
     if(Number.isFinite(env.sun)){key.intensity=env.sun;$('sunSlider').value=env.sun;$('sunValue').textContent=env.sun.toFixed(1);}
     if(Number.isFinite(env.snowFallSpeed)){snowFallSpeed=env.snowFallSpeed;$('snowSpeed').value=snowFallSpeed;$('snowSpeedValue').textContent=snowFallSpeed.toFixed(2);}
+    if(Number.isFinite(env.textureScale)){textureScale=env.textureScale;$('textureScale').value=textureScale;$('textureScaleValue').textContent=textureScale.toFixed(1)+'×';if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);}
+    if(Number.isFinite(env.fogDensity)){fogDensity=env.fogDensity;scene.fog.density=fogDensity;$('fogDensity').value=fogDensity;$('fogDensityValue').textContent=fogDensity.toFixed(3);}
+    if(typeof env.fogColor==='string'){fogColor=env.fogColor;scene.fog.color.set(fogColor);$('fogColor').value=fogColor;}
     if(typeof env.snowEnabled==='boolean'){snowEnabled=env.snowEnabled;fallingSnow.visible=snowEnabled;$('snowToggleBtn').textContent=snowEnabled?'Выключить снег':'Включить снег';}
     if(env.useSnow)applyGroundTexture(true);
   }
@@ -485,8 +553,8 @@ function applyGroundTexture(enabled){
     setStatus('Загружаю Plant.JPG…');
     new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,texture=>{
       texture.colorSpace=THREE.SRGBColorSpace;
-      texture.wrapS=texture.wrapT=THREE.ClampToEdgeWrapping;
-      texture.repeat.set(1,1);
+      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+      texture.repeat.set(textureScale,textureScale);
       texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
       snowTexture=texture;useSnow=true;ground.material.map=texture;
       ground.material.color.set(0xffffff);ground.material.needsUpdate=true;
@@ -521,9 +589,27 @@ $('snowToggleBtn').addEventListener('click',()=>{
 $('snowSpeed').addEventListener('input',e=>{
   snowFallSpeed=Number(e.target.value);$('snowSpeedValue').textContent=snowFallSpeed.toFixed(2);saveLocal();
 });
+$('textureScale').addEventListener('input',e=>{
+  textureScale=Number(e.target.value);
+  $('textureScaleValue').textContent=textureScale.toFixed(1)+'×';
+  if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);
+  saveLocal();
+});
+$('fogDensity').addEventListener('input',e=>{
+  fogDensity=Number(e.target.value);
+  scene.fog.density=fogDensity;
+  $('fogDensityValue').textContent=fogDensity.toFixed(3);
+  saveLocal();
+});
+$('fogColor').addEventListener('input',e=>{
+  fogColor=e.target.value;
+  scene.fog.color.set(fogColor);
+  saveLocal();
+});
 
 function onPointerDown(e){pointerDown={x:e.clientX,y:e.clientY};}
 function onPointerUp(e){
+  if(walkingMode){pointerDown=null;return;}
   if(!pointerDown)return;
   const moved=Math.hypot(e.clientX-pointerDown.x,e.clientY-pointerDown.y);pointerDown=null;
   if(moved>5||transform.axis)return;
@@ -541,10 +627,27 @@ function onPointerUp(e){
 renderer.domElement.addEventListener('pointerdown',onPointerDown);
 renderer.domElement.addEventListener('pointerup',onPointerUp);
 window.addEventListener('keydown',e=>{
+  if(walkingMode){
+    if(e.code==='KeyW'||e.code==='ArrowUp')walkKeys.forward=true;
+    if(e.code==='KeyS'||e.code==='ArrowDown')walkKeys.back=true;
+    if(e.code==='KeyA'||e.code==='ArrowLeft')walkKeys.left=true;
+    if(e.code==='KeyD'||e.code==='ArrowRight')walkKeys.right=true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+    return;
+  }
   if(e.key==='Delete'||e.key==='Backspace'){
     if(selected&&!(document.activeElement instanceof HTMLInputElement))$('deleteBtn').click();
   }
   if(e.key==='Escape')selectObject(null);
+});
+window.addEventListener('keyup',e=>{
+  if(e.code==='KeyW'||e.code==='ArrowUp')walkKeys.forward=false;
+  if(e.code==='KeyS'||e.code==='ArrowDown')walkKeys.back=false;
+  if(e.code==='KeyA'||e.code==='ArrowLeft')walkKeys.left=false;
+  if(e.code==='KeyD'||e.code==='ArrowRight')walkKeys.right=false;
+});
+window.addEventListener('blur',()=>{
+  walkKeys.forward=walkKeys.back=walkKeys.left=walkKeys.right=false;
 });
 function resize(){
   const w=viewport.clientWidth,h=viewport.clientHeight;
@@ -556,7 +659,15 @@ function animate(now=performance.now()){
   requestAnimationFrame(animate);
   const delta=Math.min((now-previousFrame)/1000,.05);previousFrame=now;
   updateSnow(delta);
-  orbit.update();renderer.render(scene,camera);
+  if(walkingMode&&walkControls.isLocked){
+    const forward=(walkKeys.forward?1:0)-(walkKeys.back?1:0);
+    const sideways=(walkKeys.right?1:0)-(walkKeys.left?1:0);
+    if(forward)walkControls.moveForward(forward*walkSpeed*delta);
+    if(sideways)walkControls.moveRight(sideways*walkSpeed*delta);
+    camera.position.y=1.65;
+  }
+  if(!walkingMode)orbit.update();
+  renderer.render(scene,camera);
 }
 animate();
 
