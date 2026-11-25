@@ -206,6 +206,12 @@ function syncCameraReadouts(){
   $('cameraHeight').value=cameraHeight;
   $('cameraHeightValue').textContent=cameraHeight.toFixed(1)+' м';
 }
+orbit.addEventListener('change',()=>{
+  if(walkingMode)return;
+  cameraDistance=Math.hypot(camera.position.x-orbit.target.x,camera.position.z-orbit.target.z);
+  cameraHeight=camera.position.y-orbit.target.y;
+  syncCameraReadouts();saveLocal();
+});
 function applyCameraDistance(value){
   cameraDistance=THREE.MathUtils.clamp(Number(value),4,90);
   const offset=camera.position.clone().sub(orbit.target);
