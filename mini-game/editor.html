@@ -209,9 +209,12 @@ function syncCameraReadouts(){
 function applyCameraDistance(value){
   cameraDistance=THREE.MathUtils.clamp(Number(value),4,90);
   const offset=camera.position.clone().sub(orbit.target);
-  if(offset.lengthSq()<.001)offset.set(1,.5,1);
-  offset.normalize().multiplyScalar(cameraDistance);
-  camera.position.copy(orbit.target).add(offset);
+  const horizontal=new THREE.Vector3(offset.x,0,offset.z);
+  if(horizontal.lengthSq()<.001)horizontal.set(1,0,1);
+  horizontal.normalize().multiplyScalar(cameraDistance);
+  camera.position.x=orbit.target.x+horizontal.x;
+  camera.position.z=orbit.target.z+horizontal.z;
+  camera.position.y=orbit.target.y+cameraHeight;
   syncCameraReadouts();orbit.update();saveLocal();
 }
 function applyCameraHeight(value){
@@ -221,11 +224,13 @@ function applyCameraHeight(value){
 }
 function resetCameraView(){
   orbit.target.set(0,1,0);
-  camera.position.set(13,10,16);
-  cameraDistance=camera.position.distanceTo(orbit.target);
-  cameraHeight=camera.position.y-orbit.target.y;
+  cameraDistance=Math.hypot(13,16);
+  cameraHeight=9;
+  camera.position.set(13,orbit.target.y+cameraHeight,16);
   syncCameraReadouts();orbit.update();saveLocal();
 }
+cameraDistance=Math.hypot(camera.position.x-orbit.target.x,camera.position.z-orbit.target.z);
+cameraHeight=camera.position.y-orbit.target.y;
 const walkControls = new PointerLockControls(camera,renderer.domElement);
 let walkingMode=false;
 const walkKeys={forward:false,back:false,left:false,right:false};
@@ -241,7 +246,7 @@ function finishWalking(){
   orbit.target.y=1.0;
   camera.position.copy(orbit.target).add(new THREE.Vector3(5,4,6));
   orbit.update();
-  cameraDistance=camera.position.distanceTo(orbit.target);
+  cameraDistance=Math.hypot(camera.position.x-orbit.target.x,camera.position.z-orbit.target.z);
   cameraHeight=camera.position.y-orbit.target.y;
   syncCameraReadouts();
   if(selected)transform.attach(selected);
@@ -402,7 +407,7 @@ function saveLocal(){
 function serializeScene(){
   return {
     version:2,project:'M94 mini-game exterior',
-    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight},
+    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray()},
     objects:objects.filter(o=>o.parent===scene).map(o=>({
       asset:o.userData.assetId,
       label:o.userData.label,
@@ -652,9 +657,6 @@ function restoreScene(data){
     if(Number.isFinite(env.textureScale)){textureScale=env.textureScale;$('textureScale').value=textureScale;$('textureScaleValue').textContent=textureScale.toFixed(1)+'×';if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);}
     if(Number.isFinite(env.fogDensity)){fogDensity=env.fogDensity;scene.fog.density=fogDensity;$('fogDensity').value=fogDensity;$('fogDensityValue').textContent=fogDensity.toFixed(3);}
     if(typeof env.fogColor==='string'){fogColor=env.fogColor;scene.fog.color.set(fogColor);$('fogColor').value=fogColor;}
-    if(Number.isFinite(env.cameraDistance)){cameraDistance=env.cameraDistance;}
-    if(Number.isFinite(env.cameraHeight)){cameraHeight=env.cameraHeight;}
-    syncCameraReadouts();
     if(typeof env.snowEnabled==='boolean'){snowEnabled=env.snowEnabled;fallingSnow.visible=snowEnabled;$('snowToggleBtn').textContent=snowEnabled?'Выключить снег':'Включить снег';}
     if(env.useSnow)applyGroundTexture(true);
   }
@@ -670,6 +672,15 @@ function restoreScene(data){
     }
     setStatus('Раскладка загружена · объектов: '+objects.length);
     focusAll();
+    if(data&&data.environment){
+      const env=data.environment;
+      if(Array.isArray(env.cameraTarget)&&env.cameraTarget.length===3)orbit.target.fromArray(env.cameraTarget);
+      if(Number.isFinite(env.cameraDistance))cameraDistance=env.cameraDistance;
+      if(Number.isFinite(env.cameraHeight))cameraHeight=env.cameraHeight;
+      applyCameraDistance(cameraDistance);
+      applyCameraHeight(cameraHeight);
+      syncCameraReadouts();
+    }
   })();
 }
 function focusAll(){
@@ -683,7 +694,7 @@ function focusAll(){
   orbit.target.copy(center);
   camera.position.set(center.x+distance*.95,center.y+distance*.7,center.z+distance*1.05);
   camera.near=Math.max(.01,distance/1000);camera.far=Math.max(1000,distance*30);camera.updateProjectionMatrix();orbit.update();
-  cameraDistance=camera.position.distanceTo(orbit.target);
+  cameraDistance=Math.hypot(camera.position.x-orbit.target.x,camera.position.z-orbit.target.z);
   cameraHeight=camera.position.y-orbit.target.y;
   syncCameraReadouts();
 }
