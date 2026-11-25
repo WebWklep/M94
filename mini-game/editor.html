@@ -86,8 +86,16 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
       <label for="cameraHeight">Высота камеры <output id="cameraHeightValue">9 м</output></label>
       <input id="cameraHeight" type="range" min="1" max="40" step="0.5" value="9">
     </div>
-    <button id="resetCameraBtn">Сбросить ракурс</button>
-    <p class="note">Можно приблизить сцену или поднять камеру выше, не меняя положение объектов. Колесо мыши тоже приближает.</p>
+    <button id="resetCameraBtn">Сбросить ракурс редактора</button>
+    <div class="row">
+      <button id="selectCameraRigBtn">Выбрать игровую камеру</button>
+      <button id="resetCameraRigBtn">Сбросить позицию</button>
+    </div>
+    <div class="control">
+      <label for="cameraFov">Угол обзора / зум объектива <output id="cameraFovValue">70°</output></label>
+      <input id="cameraFov" type="range" min="35" max="100" step="1" value="70">
+    </div>
+    <p class="note">Игровая камера — отдельный объект в сцене. Выбери её и перемести или поверни гизмо, в том числе по высоте. Это не камера редактора.</p>
   </section>
   <section class="section">
     <h2>Поверхность</h2>
@@ -138,7 +146,11 @@ body.walking .hint{left:50%;transform:translateX(-50%);white-space:nowrap}
   <section class="section">
     <h2>Режим ходьбы</h2>
     <button id="walkBtn">Войти в сцену</button>
-    <p class="note">Кликни «Войти в сцену», затем используй WASD и мышь. Esc — вернуться к расстановке. Высота камеры — примерно 1,65 м.</p>
+    <div class="control">
+      <label for="walkSpeed">Скорость передвижения <output id="walkSpeedValue">4.2 м/с</output></label>
+      <input id="walkSpeed" type="range" min="0.5" max="12" step="0.1" value="4.2">
+    </div>
+    <p class="note">WASD — ходьба, мышь — поворот взгляда, Esc — выход. Стартовая точка и направление берутся из игровой камеры, установленной в сцене.</p>
   </section>
   <section class="section">
     <h2>Снегопад</h2>
@@ -187,7 +199,7 @@ const viewport = $('viewport');
 const statusEl = $('status');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x171b1e);
-const camera = new THREE.PerspectiveCamera(52,1,.05,1500);
+const camera = new THREE.PerspectiveCamera(70,1,.05,1500);
 camera.position.set(13,10,16);
 const renderer = new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -200,11 +212,19 @@ const orbit = new OrbitControls(camera,renderer.domElement);
 orbit.target.set(0,1,0);orbit.enableDamping=true;orbit.dampingFactor=.07;orbit.maxPolarAngle=Math.PI*.49;
 let cameraDistance=23;
 let cameraHeight=9;
+let cameraFov=70;
 function syncCameraReadouts(){
   $('cameraDistance').value=Math.round(cameraDistance);
   $('cameraDistanceValue').textContent=Math.round(cameraDistance)+' м';
   $('cameraHeight').value=cameraHeight;
   $('cameraHeightValue').textContent=cameraHeight.toFixed(1)+' м';
+  $('cameraFov').value=cameraFov;
+  $('cameraFovValue').textContent=cameraFov+'°';
+}
+function setCameraFov(value){
+  cameraFov=THREE.MathUtils.clamp(Number(value),35,100);
+  camera.fov=cameraFov;camera.updateProjectionMatrix();
+  $('cameraFovValue').textContent=cameraFov+'°';saveLocal();
 }
 orbit.addEventListener('change',()=>{
   if(walkingMode)return;
@@ -241,16 +261,22 @@ const walkControls = new PointerLockControls(camera,renderer.domElement);
 let walkingMode=false;
 const walkKeys={forward:false,back:false,left:false,right:false};
 let walkSpeed=4.2;
+$('walkSpeed').addEventListener('input',e=>{
+  walkSpeed=Number(e.target.value);
+  $('walkSpeedValue').textContent=walkSpeed.toFixed(1)+' м/с';saveLocal();
+});
 function finishWalking(){
   if(!walkingMode)return;
   walkingMode=false;
   document.body.classList.remove('walking');
   orbit.enabled=true;
   $('walkBtn').textContent='Войти в сцену';
+  cameraRig.position.copy(camera.position);
+  cameraRig.quaternion.copy(camera.quaternion);
+  cameraRig.visible=true;
   const forward=walkControls.getDirection(new THREE.Vector3());
-  orbit.target.copy(camera.position).addScaledVector(forward,4);
-  orbit.target.y=1.0;
-  camera.position.copy(orbit.target).add(new THREE.Vector3(5,4,6));
+  orbit.target.copy(cameraRig.position).addScaledVector(forward,3);
+  camera.position.copy(cameraRig.position).addScaledVector(forward,-8).add(new THREE.Vector3(0,4,0));
   orbit.update();
   cameraDistance=Math.hypot(camera.position.x-orbit.target.x,camera.position.z-orbit.target.z);
   cameraHeight=camera.position.y-orbit.target.y;
@@ -262,14 +288,11 @@ walkControls.addEventListener('unlock',finishWalking);
 walkControls.addEventListener('lock',()=>setStatus('Прогулка: WASD — движение · мышь — обзор · Esc — выход'));
 $('walkBtn').addEventListener('click',()=>{
   if(walkingMode){walkControls.unlock();return;}
-  const offset=camera.position.clone().sub(orbit.target);offset.y=0;
-  if(offset.lengthSq()<.001)offset.set(0,0,1);
-  offset.normalize();
-  camera.position.set(orbit.target.x+offset.x*4,1.65,orbit.target.z+offset.z*4);
-  camera.lookAt(orbit.target.x,1.65,orbit.target.z);
-  orbit.enabled=false;
-  transform.detach();
-  walkingMode=true;
+  camera.position.copy(cameraRig.position);
+  camera.quaternion.copy(cameraRig.quaternion);
+  camera.fov=cameraFov;camera.updateProjectionMatrix();
+  cameraRig.visible=false;
+  orbit.enabled=false;transform.detach();walkingMode=true;
   document.body.classList.add('walking');
   $('walkBtn').textContent='Вернуться к редактору';
   walkControls.lock();
@@ -340,7 +363,7 @@ scene.add(groundRoot);
 const grid = new THREE.GridHelper(200,200,0x59636a,0x343b40);grid.position.y=.002;scene.add(grid);
 
 // Slow, light snowfall across the editor area.
-const snowCount=1050;
+const snowCount=900;
 const snowPositions=new Float32Array(snowCount*3);
 const snowVelocities=new Float32Array(snowCount);
 const snowDrifts=new Float32Array(snowCount);
@@ -348,12 +371,12 @@ for(let i=0;i<snowCount;i++){
   snowPositions[i*3]=(Math.random()-.5)*100;
   snowPositions[i*3+1]=Math.random()*38-2;
   snowPositions[i*3+2]=(Math.random()-.5)*100;
-  snowVelocities[i]=.35+Math.random()*.65;
+  snowVelocities[i]=.22+Math.random()*.48;
   snowDrifts[i]=(Math.random()-.5)*.22;
 }
 const snowGeometry=new THREE.BufferGeometry();
 snowGeometry.setAttribute('position',new THREE.BufferAttribute(snowPositions,3));
-const snowMaterial=new THREE.PointsMaterial({color:0xffffff,size:.13,sizeAttenuation:true,transparent:true,opacity:.78,depthWrite:false});
+const snowMaterial=new THREE.PointsMaterial({color:0xf4f8fb,size:.34,sizeAttenuation:true,transparent:true,opacity:.84,depthWrite:false});
 const fallingSnow=new THREE.Points(snowGeometry,snowMaterial);
 fallingSnow.frustumCulled=false;
 scene.add(fallingSnow);
@@ -383,11 +406,24 @@ let selected=null;
 let currentMode='translate';
 let useSnow=false;
 let snowTexture=null;
+let snowGroundBump=null;
 let textureScale=1;
 let snowEnabled=true;
 let snowFallSpeed=.45;
 const loadedCache=new Map();
 const objects=[groundRoot];
+function makeCameraRig(){
+  const rig=new THREE.Group();rig.name='Игровая камера';rig.userData.assetId='camera-rig';rig.userData.label='Игровая камера';
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x9fb9c4,roughness:.42,metalness:.48});
+  const lensMat=new THREE.MeshStandardMaterial({color:0x243944,roughness:.24,metalness:.35});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.48,.3,.34),bodyMat);body.castShadow=true;rig.add(body);
+  const lens=new THREE.Mesh(new THREE.CylinderGeometry(.115,.15,.2,24),lensMat);lens.rotation.x=Math.PI/2;lens.position.z=-.25;rig.add(lens);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(.22,.07,.12),bodyMat);top.position.set(0,.185,.025);rig.add(top);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(.42,.78,4,1,true),new THREE.MeshBasicMaterial({color:0x8fb8c8,wireframe:true,transparent:true,opacity:.32,depthWrite:false}));
+  cone.rotation.x=-Math.PI/2;cone.position.z=-.58;rig.add(cone);
+  rig.position.set(0,1.65,12);return rig;
+}
+const cameraRig=makeCameraRig();scene.add(cameraRig);objects.push(cameraRig);
 const raycaster=new THREE.Raycaster();
 const pointer=new THREE.Vector2();
 let pointerDown=null;
@@ -395,7 +431,7 @@ let persistTimer=null;
 
 function setStatus(message){statusEl.textContent=message;}
 function updateSelection(){
-  $('deleteBtn').disabled=!selected||selected===groundRoot;
+  $('deleteBtn').disabled=!selected||selected===groundRoot||selected===cameraRig;
   $('objectName').textContent=selected?(selected.userData.label||selected.name):'Ничего не выбрано';
   if(selected)transform.attach(selected);else transform.detach();
 }
@@ -413,7 +449,7 @@ function saveLocal(){
 function serializeScene(){
   return {
     version:2,project:'M94 mini-game exterior',
-    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray()},
+    environment:{sky:currentSky,ambient:hemi.intensity,sun:key.intensity,snowEnabled,snowFallSpeed,useSnow,textureScale,fogDensity,fogColor,cameraDistance,cameraHeight,cameraTarget:orbit.target.toArray(),cameraFov,walkSpeed},
     objects:objects.filter(o=>o.parent===scene).map(o=>({
       asset:o.userData.assetId,
       label:o.userData.label,
@@ -445,14 +481,14 @@ function createSnowSurfaceMaps(){
   let seed=9137;
   const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   // Fine granular snow, soft compressed patches and a little road dust.
-  for(let i=0;i<5200;i++){
-    const x=rand()*size,y=rand()*size,r=.25+rand()*2.8;
+  for(let i=0;i<3100;i++){
+    const x=rand()*size,y=rand()*size,r=.9+rand()*5.8;
     const v=Math.floor(205+rand()*48);
     ctx.fillStyle='rgba('+v+','+(v+2)+','+(v+3)+','+(0.035+rand()*.12)+')';
     ctx.beginPath();ctx.ellipse(x,y,r,r*(.35+rand()),rand()*.7,0,Math.PI*2);ctx.fill();
   }
-  for(let i=0;i<145;i++){
-    const x=rand()*size,y=rand()*size,r=12+rand()*68;
+  for(let i=0;i<225;i++){
+    const x=rand()*size,y=rand()*size,r=18+rand()*88;
     const g=ctx.createRadialGradient(x,y,0,x,y,r);
     const shade=rand();
     g.addColorStop(0,shade>.76?'rgba(110,124,128,.20)':'rgba(255,255,255,.38)');
@@ -475,13 +511,13 @@ function createSnowSurfaceMaps(){
   const bctx=bumpCanvas.getContext('2d');
   bctx.fillStyle='#aaa';bctx.fillRect(0,0,size,size);
   for(let i=0;i<12000;i++){
-    const x=rand()*size,y=rand()*size,r=.5+rand()*3;
+    const x=rand()*size,y=rand()*size,r=1.2+rand()*6.5;
     const tone=Math.floor(100+rand()*125);
     bctx.fillStyle='rgb('+tone+','+tone+','+tone+')';
     bctx.beginPath();bctx.ellipse(x,y,r,r*(.4+rand()),rand(),0,Math.PI*2);bctx.fill();
   }
   for(let i=0;i<200;i++){
-    const x=rand()*size,y=rand()*size,r=5+rand()*24;
+    const x=rand()*size,y=rand()*size,r=10+rand()*42;
     const g=bctx.createRadialGradient(x,y,0,x,y,r);
     const t=Math.floor(90+rand()*150);
     g.addColorStop(0,'rgba('+t+','+t+','+t+',.24)');
@@ -498,7 +534,7 @@ function makeSnowMaterial(vertexColors=true){
     color:0xffffff,
     map:snowSurfaceMap,
     bumpMap:snowSurfaceBump,
-    bumpScale:.10,
+    bumpScale:.24,
     roughness:.99,
     metalness:0,
     vertexColors
@@ -524,11 +560,12 @@ function createSnowdriftGeometry(preset){
         const dx=(u-peak[0])/peak[3],dz=(v-peak[1])/peak[4];
         height+=peak[2]*Math.exp(-2.05*(dx*dx+dz*dz));
       }
-      const edgeWave=1+.055*Math.sin(ix*.37+iz*.19)+.035*Math.cos(iz*.51-ix*.12);
-      const edge=Math.pow(Math.max(0,Math.sin(Math.PI*(u+.5))*Math.sin(Math.PI*(v+.5))),.23);
+      const edgeWave=1+.10*Math.sin(ix*.37+iz*.19)+.065*Math.cos(iz*.51-ix*.12);
+      const edge=Math.pow(Math.max(0,Math.sin(Math.PI*(u+.5))*Math.sin(Math.PI*(v+.5))),.20);
       const broadNoise=(Math.sin(ix*.21+iz*.08)*.55+Math.cos(iz*.17-ix*.12)*.45);
-      const granular=(Math.sin(ix*1.73+iz*.63)+Math.cos(iz*1.29-ix*.37)+Math.sin((ix+iz)*.31))*.012;
-      const y=Math.max(0,(height*edgeWave+broadNoise*.045+granular)*edge)*preset.h/1.65;
+      const clumpNoise=Math.sin(ix*.83+iz*.37)*.55+Math.cos(iz*.71-ix*.49)*.45;
+      const granular=(Math.sin(ix*1.73+iz*.63)+Math.cos(iz*1.29-ix*.37)+Math.sin((ix+iz)*.31))*.025;
+      const y=Math.max(0,(height*edgeWave+broadNoise*.10+clumpNoise*.055+granular)*edge)*preset.h/1.65;
       positions.push(u*preset.w,y,v*preset.d);
       uvs.push(ix/nx,iz/nz);
       const elevation=THREE.MathUtils.clamp(y/(preset.h*.58),0,1);
@@ -559,11 +596,11 @@ function makeSnowdrift(id,saved=null){
   root.add(mound);
   // A low, compressed snow skirt gives the drift a rounded footprint instead of a thin white hill.
   const skirtMaterial=makeSnowMaterial(false);
-  skirtMaterial.color.set(0xc6d0d2);
-  skirtMaterial.bumpScale=.14;
+  skirtMaterial.color.set(0xb9c5c8);
+  skirtMaterial.bumpScale=.30;
   const skirt=new THREE.Mesh(new THREE.SphereGeometry(1,48,28),skirtMaterial);
-  skirt.scale.set(preset.w*.51,.27,preset.d*.51);
-  skirt.position.y=-.055;
+  skirt.scale.set(preset.w*.53,.34,preset.d*.53);
+  skirt.position.y=-.075;
   skirt.castShadow=true;skirt.receiveShadow=true;
   root.add(skirt);
   if(saved){
@@ -642,7 +679,7 @@ async function addAsset(id, saved=null){
 function clearScene(){
   transform.detach();selected=null;
   for(const obj of [...objects]){
-    if(obj===groundRoot)continue;
+    if(obj===groundRoot||obj===cameraRig)continue;
     scene.remove(obj);
   }
   objects.length=0;
@@ -650,6 +687,8 @@ function clearScene(){
   groundRoot.rotation.set(0,0,0);
   groundRoot.scale.set(60,1,60);
   scene.add(groundRoot);objects.push(groundRoot);
+  cameraRig.position.set(0,1.65,12);cameraRig.rotation.set(0,0,0);cameraRig.scale.set(1,1,1);cameraRig.visible=true;
+  scene.add(cameraRig);objects.push(cameraRig);
   updateSelection();saveLocal();setStatus('Сцена очищена · поверхность оставлена на месте');
 }
 function restoreScene(data){
@@ -663,6 +702,8 @@ function restoreScene(data){
     if(Number.isFinite(env.textureScale)){textureScale=env.textureScale;$('textureScale').value=textureScale;$('textureScaleValue').textContent=textureScale.toFixed(1)+'×';if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);}
     if(Number.isFinite(env.fogDensity)){fogDensity=env.fogDensity;scene.fog.density=fogDensity;$('fogDensity').value=fogDensity;$('fogDensityValue').textContent=fogDensity.toFixed(3);}
     if(typeof env.fogColor==='string'){fogColor=env.fogColor;scene.fog.color.set(fogColor);$('fogColor').value=fogColor;}
+    if(Number.isFinite(env.cameraFov)){cameraFov=env.cameraFov;camera.fov=cameraFov;camera.updateProjectionMatrix();$('cameraFov').value=cameraFov;$('cameraFovValue').textContent=cameraFov+'°';}
+    if(Number.isFinite(env.walkSpeed)){walkSpeed=env.walkSpeed;$('walkSpeed').value=walkSpeed;$('walkSpeedValue').textContent=walkSpeed.toFixed(1)+' м/с';}
     if(typeof env.snowEnabled==='boolean'){snowEnabled=env.snowEnabled;fallingSnow.visible=snowEnabled;$('snowToggleBtn').textContent=snowEnabled?'Выключить снег':'Включить снег';}
     if(env.useSnow)applyGroundTexture(true);
   }
@@ -673,6 +714,10 @@ function restoreScene(data){
         groundRoot.position.fromArray(entry.position||[0,-.025,0]);
         groundRoot.rotation.set(...(entry.rotation||[0,0,0]));
         groundRoot.scale.fromArray(entry.scale||[60,1,60]);
+      }else if(entry.asset==='camera-rig'){
+        cameraRig.position.fromArray(entry.position||[0,1.65,12]);
+        cameraRig.rotation.set(...(entry.rotation||[0,0,0]));
+        cameraRig.scale.fromArray(entry.scale||[1,1,1]);cameraRig.visible=true;
       }else if(SNOWDRIFTS.some(item=>item.id===entry.asset))makeSnowdrift(entry.asset,entry);
       else if(getAsset(entry.asset))await addAsset(entry.asset,entry);
     }
@@ -708,6 +753,7 @@ function focusAll(){
 $('deleteBtn').addEventListener('click',()=>{
   if(!selected)return;
   if(selected===groundRoot){setStatus('Поверхность нельзя удалить — её можно перемещать, вращать и масштабировать');return;}
+  if(selected===cameraRig){setStatus('Игровую камеру нельзя удалить — её можно перемещать и вращать');return;}
   const old=selected;transform.detach();scene.remove(old);
   const i=objects.indexOf(old);if(i>=0)objects.splice(i,1);
   selected=null;updateSelection();saveLocal();setStatus('Объект удалён');
@@ -748,26 +794,81 @@ $('fileInput').addEventListener('change',async e=>{
 });
 transform.addEventListener('objectChange',saveLocal);
 
+function makeSnowCoverFromPlant(image){
+  const sourceWidth=image.naturalWidth||image.width;
+  const w=Math.min(sourceWidth,2048);
+  const h=Math.max(1,Math.round((image.naturalHeight||image.height)*w/sourceWidth));
+  const source=document.createElement('canvas');source.width=w;source.height=h;
+  const sctx=source.getContext('2d',{willReadFrequently:true});sctx.drawImage(image,0,0,w,h);
+  const src=sctx.getImageData(0,0,w,h).data;
+  const colorCanvas=document.createElement('canvas');colorCanvas.width=w;colorCanvas.height=h;
+  const cctx=colorCanvas.getContext('2d');
+  const out=cctx.createImageData(w,h);
+  const bumpCanvas=document.createElement('canvas');bumpCanvas.width=w;bumpCanvas.height=h;
+  const bctx=bumpCanvas.getContext('2d');const bump=bctx.createImageData(w,h);
+  let seed=1717;
+  const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=(y*w+x)*4;
+    const r=src[i]/255,g=src[i+1]/255,b=src[i+2]/255;
+    const lum=.2126*r+.7152*g+.0722*b;
+    // User identified the dark areas of Plant.JPG as vehicle tracks.
+    const track=1-THREE.MathUtils.smoothstep(lum,.20,.50);
+    const grain=(rand()-.5)*.085+Math.sin(x*.21+y*.13)*.018+Math.cos(x*.09-y*.17)*.014;
+    const snowValue=THREE.MathUtils.clamp(.91+grain+(lum-.5)*.05,.78,1);
+    const trackValue=THREE.MathUtils.clamp(.28+lum*.14+(rand()-.5)*.05,.18,.48);
+    const v=THREE.MathUtils.lerp(snowValue,trackValue,track);
+    out.data[i]=Math.round(255*v);
+    out.data[i+1]=Math.round(255*THREE.MathUtils.clamp(v*1.015,0,1));
+    out.data[i+2]=Math.round(255*THREE.MathUtils.clamp(v*1.025,0,1));
+    out.data[i+3]=255;
+    const clump=Math.sin(x*.12)*Math.cos(y*.10)+Math.sin((x+y)*.045);
+    const bumpSnow=THREE.MathUtils.clamp(178+clump*19+(rand()-.5)*52,90,250);
+    const bumpTrack=THREE.MathUtils.clamp(73+lum*40+(rand()-.5)*20,45,132);
+    const bh=THREE.MathUtils.lerp(bumpSnow,bumpTrack,track);
+    bump.data[i]=bump.data[i+1]=bump.data[i+2]=Math.round(bh);bump.data[i+3]=255;
+  }
+  cctx.putImageData(out,0,0);bctx.putImageData(bump,0,0);
+  // Larger soft snow clumps only on light areas, so tracks stay open.
+  for(let n=0;n<420;n++){
+    const x=rand()*w,y=rand()*h,idx=(Math.floor(y)*w+Math.floor(x))*4;
+    const lum=(.2126*src[idx]+.7152*src[idx+1]+.0722*src[idx+2])/255;
+    if(lum<.50)continue;
+    const rx=2+rand()*8,ry=1.5+rand()*5;
+    const g=cctx.createRadialGradient(x,y,0,x,y,Math.max(rx,ry));
+    g.addColorStop(0,'rgba(255,255,255,'+(.10+rand()*.16)+')');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    cctx.fillStyle=g;cctx.beginPath();cctx.ellipse(x,y,rx,ry,rand()*Math.PI,0,Math.PI*2);cctx.fill();
+  }
+  const map=new THREE.CanvasTexture(colorCanvas);
+  map.colorSpace=THREE.SRGBColorSpace;map.wrapS=map.wrapT=THREE.RepeatWrapping;
+  map.repeat.set(textureScale,textureScale);map.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  const bumpMap=new THREE.CanvasTexture(bumpCanvas);
+  bumpMap.wrapS=bumpMap.wrapT=THREE.RepeatWrapping;bumpMap.repeat.set(textureScale,textureScale);
+  return {map,bumpMap};
+}
 function applyGroundTexture(enabled){
   if(enabled&&!snowTexture){
-    setStatus('Загружаю Plant.JPG…');
-    new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,texture=>{
-      texture.colorSpace=THREE.SRGBColorSpace;
-      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-      texture.repeat.set(textureScale,textureScale);
-      texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      snowTexture=texture;useSnow=true;ground.material.map=texture;
-      ground.material.color.set(0xffffff);ground.material.needsUpdate=true;
-      $('groundBtn').textContent='Выключить текстуру снега';
-      setStatus('Plant.JPG растянута на всю площадку');
-      saveLocal();
+    setStatus('Читаю Plant.JPG и собираю снежный покров со следами…');
+    new THREE.TextureLoader().load(new URL('Plant.JPG',BASE).href,sourceTexture=>{
+      try{
+        const generated=makeSnowCoverFromPlant(sourceTexture.image);
+        snowTexture=generated.map;snowGroundBump=generated.bumpMap;
+        ground.material.map=snowTexture;ground.material.bumpMap=snowGroundBump;ground.material.bumpScale=.14;
+        sourceTexture.dispose();useSnow=true;
+        ground.material.color.set(0xffffff);ground.material.roughness=.99;ground.material.needsUpdate=true;
+        $('groundBtn').textContent='Выключить текстуру снега';
+        setStatus('Снежный покров готов: тёмные полосы сохранены как следы шин');
+        saveLocal();
+      }catch(error){console.error(error);setStatus('Не удалось обработать Plant.JPG. Проверь формат изображения.');}
     },undefined,()=>setStatus('Plant.JPG не загрузилась — проверь имя файла'));
     return;
   }
   useSnow=enabled;ground.material.map=useSnow?snowTexture:null;
+  ground.material.bumpMap=useSnow?snowGroundBump:null;
   ground.material.color.set(useSnow?0xffffff:0x777b7d);ground.material.needsUpdate=true;
   $('groundBtn').textContent=useSnow?'Выключить текстуру снега':'Включить текстуру снега';
-  setStatus(useSnow?'Текстура снега растянута на всю площадку':'Текстура снега выключена');
+  setStatus(useSnow?'Снежный покров включён':'Текстура снега выключена');
   saveLocal();
 }
 $('groundBtn').addEventListener('click',()=>applyGroundTexture(!useSnow));
@@ -777,6 +878,17 @@ $('selectGroundBtn').addEventListener('click',()=>{
   document.querySelectorAll('.mode').forEach(btn=>btn.classList.toggle('active',btn.dataset.mode===currentMode));
   setStatus('Выбрана земля · теперь можно менять её Move / Rotate / Scale');
 });
+$('selectCameraRigBtn').addEventListener('click',()=>{
+  cameraRig.visible=true;selectObject(cameraRig);
+  currentMode='translate';transform.setMode(currentMode);
+  document.querySelectorAll('.mode').forEach(btn=>btn.classList.toggle('active',btn.dataset.mode===currentMode));
+  setStatus('Игровая камера выбрана · перемести её и поверни в нужном направлении');
+});
+$('resetCameraRigBtn').addEventListener('click',()=>{
+  cameraRig.position.set(0,1.65,12);cameraRig.rotation.set(0,0,0);cameraRig.scale.set(1,1,1);cameraRig.visible=true;
+  selectObject(cameraRig);saveLocal();setStatus('Позиция игровой камеры сброшена');
+});
+$('cameraFov').addEventListener('input',e=>setCameraFov(e.target.value));
 
 document.querySelectorAll('.sky-mode').forEach(btn=>btn.addEventListener('click',()=>{
   setSky(btn.dataset.sky);saveLocal();setStatus('Небо изменено: '+btn.textContent);
@@ -799,6 +911,7 @@ $('textureScale').addEventListener('input',e=>{
   textureScale=Number(e.target.value);
   $('textureScaleValue').textContent=textureScale.toFixed(1)+'×';
   if(snowTexture)snowTexture.repeat.set(textureScale,textureScale);
+  if(snowGroundBump)snowGroundBump.repeat.set(textureScale,textureScale);
   saveLocal();
 });
 $('fogDensity').addEventListener('input',e=>{
@@ -871,7 +984,7 @@ function animate(now=performance.now()){
     const sideways=(walkKeys.right?1:0)-(walkKeys.left?1:0);
     if(forward)walkControls.moveForward(forward*walkSpeed*delta);
     if(sideways)walkControls.moveRight(sideways*walkSpeed*delta);
-    camera.position.y=1.65;
+    // Height is controlled by the in-scene Camera Rig.
   }
   if(!walkingMode)orbit.update();
   renderer.render(scene,camera);
